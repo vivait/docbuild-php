@@ -1,0 +1,28 @@
+{
+    "name": "vivait/docbuild-php",
+    "license": "MIT",
+    "description": "PHP client for doc.build",
+    "authors": [
+        {
+            "name": "Robin Cawser",
+            "email": "robin@vivait.co.uk"
+        }
+    ],
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "require": {
+        "php": ">=5.3.3",
+        "guzzlehttp/guzzle": "~5.0"
+    },
+    "require-dev": {
+        "phpspec/phpspec": "~2.0"
+    },
+    "config": {
+        "bin-dir": "bin"
+    },
+    "autoload": {
+        "psr-0": {
+            "Vivait\\DocBuild\\": "src/"
+        }
+    }
+}
