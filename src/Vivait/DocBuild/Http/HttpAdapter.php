@@ -33,13 +33,6 @@ interface HttpAdapter
      */
     public function post($resource, $request = [], $headers = []);
 
-    /**
-     * @param $method
-     * @param $url
-     * @param array $options
-     * @return mixed
-     */
-    public function sendRequest($method, $url, array $options = []);
 
     /**
      * @return int

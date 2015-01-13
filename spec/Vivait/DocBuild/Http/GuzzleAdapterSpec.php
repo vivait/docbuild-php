@@ -2,14 +2,9 @@
 
 namespace spec\Vivait\DocBuild\Http;
 
-use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Message\Request;
-use GuzzleHttp\Message\RequestInterface;
 use GuzzleHttp\Message\Response;
-use GuzzleHttp\Message\ResponseInterface;
-use GuzzleHttp\Stream\StreamInterface;
-use GuzzleHttp\Subscriber\Mock;
 use PhpSpec\ObjectBehavior;
 use Prophecy\Argument;
 
@@ -26,6 +21,39 @@ class GuzzleAdapterSpec extends ObjectBehavior
         $this->beConstructedWith($client);
     }
 
+
+    function it_can_set_the_api_end_point()
+    {
+        $url = 'http://doc.build/api';
+        $this->setUrl($url)->shouldReturn($this);
+    }
+
+    function it_can_set_the_api_key()
+    {
+        $key = 'myapikey';
+        $this->setKey($key)->shouldReturn($this);
+    }
+
+    function it_can_get_the_response_headers(ClientInterface $client)
+    {
+        $url = 'http://doc.build/api/documents/someid/payload';
+        $request = new Request('get', $url);
+        $client->createRequest('get', $url, Argument::any())->willReturn($request);
+
+        $response = new Response(200);
+        $response->setHeader('Content-Disposition', 'attachment');
+        $response->setHeader('filename', 'TestDocument1.docx');
+
+        $client->send($request)->willReturn($response);
+        $this->sendRequest('get', $url);
+
+        $expected = [
+            'Content-Disposition' => ['attachment'],
+            'filename' => ['TestDocument1.docx']
+        ];
+
+        $this->getResponseHeaders()->shouldEqual($expected);
+    }
 
     function it_can_get_the_last_response_code(ClientInterface $client)
     {
@@ -56,36 +84,24 @@ class GuzzleAdapterSpec extends ObjectBehavior
         $this->getResponseCode()->shouldNotReturn(404);
     }
 
-    function it_can_get_the_response_headers(ClientInterface $client)
+    function it_can_perform_a_get_request(ClientInterface $client)
     {
         $url = 'http://doc.build/api/';
+        $this->setUrl($url);
+
         $request = new Request('get', $url);
-        $client->createRequest('get', $url, Argument::any())->willReturn($request);
+        $client->createRequest('get', 'http://doc.build/api/documents', Argument::any())->willReturn($request);
 
         $response = new Response(200);
-        $response->setHeader('Content-Disposition', 'attachment');
-        $response->setHeader('filename', 'TestDocument1.docx');
-
         $client->send($request)->willReturn($response);
-        $this->sendRequest('get', $url);
 
-        $expected = [
-            'Content-Disposition' => ['attachment'],
-            'filename' => ['TestDocument1.docx']
-        ];
+        $this->sendRequest('get', Argument::any());
 
-        $this->getResponseHeaders()->shouldEqual($expected);
+        $this->get('documents')->shouldReturn();
     }
 
-    function it_can_set_the_api_end_point()
+    function it_can_perform_a_post_request()
     {
-        $url = 'http://doc.build/api';
-        $this->setUrl($url)->shouldReturn($this);
-    }
 
-    function it_can_set_the_api_key()
-    {
-        $key = 'myapikey';
-        $this->setKey($key)->shouldReturn($this);
     }
 }

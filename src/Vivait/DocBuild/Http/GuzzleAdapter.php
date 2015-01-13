@@ -4,9 +4,7 @@ namespace Vivait\DocBuild\Http;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
-use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\RequestException;
-use GuzzleHttp\Exception\ServerException;
 use GuzzleHttp\Exception\TooManyRedirectsException;
 use GuzzleHttp\Exception\TransferException;
 use GuzzleHttp\Message\Response;
@@ -75,7 +73,7 @@ class GuzzleAdapter implements HttpAdapter
 
     public function post($resource, $request = [], $headers = [], $json = true)
     {
-        $this->sendRequest('post', $request, $headers);
+        $this->sendRequest('post', $this->url . $resource, $request, $headers);
     }
 
     public function sendRequest($method, $url, array $options = [])
