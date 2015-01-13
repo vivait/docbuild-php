@@ -3,6 +3,7 @@
 namespace Vivait\DocBuild\Http;
 
 use GuzzleHttp\Client;
+use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Exception\ServerException;
@@ -34,11 +35,11 @@ class GuzzleAdapter implements HttpAdapter
 
 
     /**
-     * @param Client $guzzle
+     * @param ClientInterface $guzzle
      */
-    public function __construct(Client $guzzle = null)
+    public function __construct(ClientInterface $guzzle = null)
     {
-        if(!$guzzle){
+        if (!$guzzle) {
             $this->guzzle = new Client();
         } else {
             $this->guzzle = $guzzle;
@@ -52,6 +53,7 @@ class GuzzleAdapter implements HttpAdapter
     public function setUrl($url)
     {
         $this->url = $url;
+
         return $this;
     }
 
@@ -62,6 +64,7 @@ class GuzzleAdapter implements HttpAdapter
     public function setKey($key)
     {
         $this->key = $key;
+
         return $this;
     }
 
@@ -79,12 +82,12 @@ class GuzzleAdapter implements HttpAdapter
     {
         $options['exceptions'] = false;
 
-        try{
+        try {
             $request = $this->guzzle->createRequest($method, $url, $options);
             $this->response = $this->guzzle->send($request);
         } catch (TooManyRedirectsException $e) {
 
-        } catch (RequestException $e){
+        } catch (RequestException $e) {
             // dns/connection timeout
         } catch (TransferException $e) {
         }
@@ -93,11 +96,6 @@ class GuzzleAdapter implements HttpAdapter
     public function getResponseCode()
     {
         return $this->response->getStatusCode();
-    }
-
-    public function getResponseContent()
-    {
-        return $this->response->getBody()->getContents();
     }
 
     public function getResponseHeaders()

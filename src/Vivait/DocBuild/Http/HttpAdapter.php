@@ -47,11 +47,6 @@ interface HttpAdapter
     public function getResponseCode();
 
     /**
-     * @return string
-     */
-    public function getResponseContent();
-
-    /**
      * @return array
      */
     public function getResponseHeaders();

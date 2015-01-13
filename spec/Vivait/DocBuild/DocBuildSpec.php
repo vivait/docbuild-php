@@ -51,7 +51,7 @@ class DocBuildSpec extends ObjectBehavior
 
         $headers = [
             'Content-Disposition' => ['attachment'],
-            'filename' => ['"TestDocument1.docx"']
+            'filename' => ['TestDocument1.docx']
         ];
 
         $httpAdapter->getResponseHeaders()->willReturn($headers);
