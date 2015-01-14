@@ -68,7 +68,15 @@ class GuzzleAdapter implements HttpAdapter
 
     public function get($resource, $request = [], $headers = [], $json = true)
     {
-        $this->sendRequest('get', $this->url . $resource, $request, $headers);
+        $this->response = null;
+
+        $options = [
+            'exceptions' => false,
+            'query' => $request,
+            'headers' => $headers,
+        ];
+
+        $this->response = $this->guzzle->get($this->url . $resource, $options);
 
         if($json){
             return json_decode($this->getResponseContent(), true);
@@ -79,7 +87,15 @@ class GuzzleAdapter implements HttpAdapter
 
     public function post($resource, $request = [], $headers = [], $json = true)
     {
-        $this->sendRequest('post', $this->url . $resource, $request, $headers);
+        $this->response = null;
+
+        $options = [
+            'exceptions' => false,
+            'body' => $request,
+            'headers' => $headers,
+        ];
+
+        $this->response = $this->guzzle->post($this->url . $resource, $options);
 
         if($json){
             return json_decode($this->getResponseContent(), true);
@@ -88,22 +104,25 @@ class GuzzleAdapter implements HttpAdapter
         return $this->getResponseContent();
     }
 
-    public function sendRequest($method, $url, array $options = [])
-    {
-        $this->response = null;
-
-        $options['exceptions'] = false;
-
-        try {
-            $request = $this->guzzle->createRequest($method, $url, $options);
-            $this->response = $this->guzzle->send($request);
-        } catch (TooManyRedirectsException $e) {
-
-        } catch (RequestException $e) {
-            // dns/connection timeout
-        } catch (TransferException $e) {
-        }
-    }
+//    public function sendRequest($method, $url, $request = [], $headers = [])
+//    {
+//        $this->response = null; //Resets previous response
+//
+//        $options = [
+//            'exceptions' => false,
+//            ''
+//        ];
+//
+//        try {
+//            $request = $this->guzzle->createRequest($method, $url, $options);
+//            $this->response = $this->guzzle->send($request);
+//        } catch (TooManyRedirectsException $e) {
+//
+//        } catch (RequestException $e) {
+//            // dns/connection timeout
+//        } catch (TransferException $e) {
+//        }
+//    }
 
     public function getResponseCode()
     {
@@ -117,11 +136,7 @@ class GuzzleAdapter implements HttpAdapter
 
     public function getResponseContent()
     {
-        if($this->response){
-            return $this->response->getBody()->getContents();
-        } else {
-            throw new \Exception("no response");
-        }
+        return $this->response->getBody()->getContents();
     }
 
 

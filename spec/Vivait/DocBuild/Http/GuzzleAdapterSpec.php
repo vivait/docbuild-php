@@ -20,12 +20,13 @@ class GuzzleAdapterSpec extends ObjectBehavior
     function let(ClientInterface $client)
     {
         $this->beConstructedWith($client);
+        $this->setUrl('http://doc.build/api/');
     }
 
 
     function it_can_set_the_api_end_point()
     {
-        $url = 'http://doc.build/api';
+        $url = 'http://doc.build/api/';
         $this->setUrl($url)->shouldReturn($this);
     }
 
@@ -38,15 +39,15 @@ class GuzzleAdapterSpec extends ObjectBehavior
     function it_can_get_the_response_headers(ClientInterface $client)
     {
         $url = 'http://doc.build/api/documents/someid/payload';
-        $request = new Request('get', $url);
-        $client->createRequest('get', $url, Argument::any())->willReturn($request);
 
         $response = new Response(200);
         $response->setHeader('Content-Disposition', 'attachment');
         $response->setHeader('filename', 'TestDocument1.docx');
+        $response->setBody(Stream::factory(""));
 
-        $client->send($request)->willReturn($response);
-        $this->sendRequest('get', $url);
+        $client->get($url, Argument::any())->willReturn($response);
+
+        $this->get('documents/someid/payload');
 
         $expected = [
             'Content-Disposition' => ['attachment'],
@@ -59,30 +60,24 @@ class GuzzleAdapterSpec extends ObjectBehavior
     function it_can_get_the_last_response_code(ClientInterface $client)
     {
         //First request
-        $method = 'get';
-        $url = 'http://doc.build/api/doesnotexists';
+        $url = 'http://doc.build/api/doesnotexist';
         $code = 404;
 
-        $request = new Request($method, $url);
-        $client->createRequest($method, $url, Argument::any())->willReturn($request);
-
         $response = new Response($code);
-        $client->send($request)->willReturn($response);
+        $response->setBody(Stream::factory(""));
 
-        $this->sendRequest($method, $url);
+        $client->get($url, Argument::any())->willReturn($response);
+        $this->get('doesnotexist');
 
         //Second request
-        $method = 'get';
         $url = 'http://doc.build/api/exists';
         $code = 200;
 
-        $request = new Request($method, $url);
-        $client->createRequest($method, $url, Argument::any())->willReturn($request);
-
         $response = new Response($code);
-        $client->send($request)->willReturn($response);
+        $response->setBody(Stream::factory(""));
 
-        $this->sendRequest($method, $url);
+        $client->get($url, Argument::any())->willReturn($response);
+        $this->get('exists');
 
         //Result
         $this->getResponseCode()->shouldBe(200);
@@ -91,11 +86,7 @@ class GuzzleAdapterSpec extends ObjectBehavior
 
     function it_can_perform_a_get_request(ClientInterface $client)
     {
-        $url = 'http://doc.build/api/';
-        $this->setUrl($url);
-
-        $request = new Request('get', $url);
-        $client->createRequest('get', 'http://doc.build/api/documents', Argument::any())->willReturn($request);
+        $url = 'http://doc.build/api/documents';
 
         $response = new Response(200);
         $response->setBody(
@@ -104,13 +95,22 @@ class GuzzleAdapterSpec extends ObjectBehavior
             )
         );
 
-        $expected = [['status' => 0, 'id' => 'a1ec0371-966d-11e4-baee-08002730eb8a', 'name' => 'Test Document 1', 'extension' => 'docx']];
+        $expected = [
+            [
+                'status' => 0,
+                'id' => 'a1ec0371-966d-11e4-baee-08002730eb8a',
+                'name' => 'Test Document 1',
+                'extension' => 'docx'
+            ]
+        ];
 
-        $client->send($request)->willReturn($response);
-
-        $this->sendRequest('get', 'http://doc.build/api/documents');
-
+        $client->get($url, Argument::any())->willReturn($response);
         $this->get('documents')->shouldEqual($expected);
+    }
+
+    function it_can_perform_a_get_request_with_headers(ClientInterface $client)
+    {
+
     }
 
     function it_can_perform_a_post_request()
