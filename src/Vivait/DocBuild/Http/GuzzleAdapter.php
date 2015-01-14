@@ -69,15 +69,29 @@ class GuzzleAdapter implements HttpAdapter
     public function get($resource, $request = [], $headers = [], $json = true)
     {
         $this->sendRequest('get', $this->url . $resource, $request, $headers);
+
+        if($json){
+            return json_decode($this->getResponseContent(), true);
+        }
+
+        return $this->getResponseContent();
     }
 
     public function post($resource, $request = [], $headers = [], $json = true)
     {
         $this->sendRequest('post', $this->url . $resource, $request, $headers);
+
+        if($json){
+            return json_decode($this->getResponseContent(), true);
+        }
+
+        return $this->getResponseContent();
     }
 
     public function sendRequest($method, $url, array $options = [])
     {
+        $this->response = null;
+
         $options['exceptions'] = false;
 
         try {
@@ -100,4 +114,15 @@ class GuzzleAdapter implements HttpAdapter
     {
         return $this->response->getHeaders();
     }
+
+    public function getResponseContent()
+    {
+        if($this->response){
+            return $this->response->getBody()->getContents();
+        } else {
+            throw new \Exception("no response");
+        }
+    }
+
+
 }
