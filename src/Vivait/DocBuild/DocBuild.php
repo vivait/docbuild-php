@@ -19,7 +19,7 @@ class DocBuild
      */
     public function __construct($key, HttpAdapter $http = null)
     {
-        if(!$http){
+        if (!$http) {
             $this->http = new GuzzleAdapter();
         } else {
             $this->http = $http;
@@ -27,6 +27,16 @@ class DocBuild
 
         $this->http->setUrl(self::URL);
         $this->http->setKey($key);
+    }
+
+    public function createDocument($name, $extension, $file = null)
+    {
+        //TODO
+    }
+
+    public function uploadDocument($id, $file)
+    {
+        //TODO
     }
 
     public function getDocuments()
@@ -41,11 +51,26 @@ class DocBuild
 
     public function downloadDocument($id)
     {
-        return $this->http->get('documents/' . $id . '/payload', [], [],  false);
+        return $this->http->get('documents/' . $id . '/payload', [], [], false);
     }
 
-    public function getResponseHeaders()
+    public function createCallback($source, $url)
     {
-        return $this->http->getResponseHeaders();
+        //TODO
+    }
+
+    public function combineDocument($name, array $source = [], $callback)
+    {
+        //TODO
+    }
+
+    public function convertToPdf($source, $callback)
+    {
+        //TODO
+    }
+
+    public function getHttpAdapter()
+    {
+        return $this->http;
     }
 }

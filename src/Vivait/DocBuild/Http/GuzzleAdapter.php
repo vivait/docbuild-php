@@ -4,9 +4,6 @@ namespace Vivait\DocBuild\Http;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
-use GuzzleHttp\Exception\RequestException;
-use GuzzleHttp\Exception\TooManyRedirectsException;
-use GuzzleHttp\Exception\TransferException;
 use GuzzleHttp\Message\Response;
 
 class GuzzleAdapter implements HttpAdapter
@@ -71,7 +68,7 @@ class GuzzleAdapter implements HttpAdapter
         $this->response = null;
 
         $options = [
-            'exceptions' => false,
+            'exceptions' => false, //Disable http exceptions
             'query' => $request,
             'headers' => $headers,
         ];
@@ -90,7 +87,7 @@ class GuzzleAdapter implements HttpAdapter
         $this->response = null;
 
         $options = [
-            'exceptions' => false,
+            'exceptions' => false, //Disable http exceptions
             'body' => $request,
             'headers' => $headers,
         ];

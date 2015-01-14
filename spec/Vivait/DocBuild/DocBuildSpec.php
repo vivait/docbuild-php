@@ -20,8 +20,6 @@ class DocBuildSpec extends ObjectBehavior
         $this->beConstructedWith($key, $httpAdapter);
     }
 
-
-
     function it_can_get_a_list_of_documents(HttpAdapter $httpAdapter)
     {
         $expected = [
@@ -57,7 +55,7 @@ class DocBuildSpec extends ObjectBehavior
         $httpAdapter->getResponseHeaders()->willReturn($headers);
 
         $this->downloadDocument($id);
-        $this->getResponseHeaders()->shouldReturn($headers);
+        $this->getHttpAdapter()->getResponseHeaders()->shouldReturn($headers);
     }
 
     function it_can_get_document_info(HttpAdapter $httpAdapter)
@@ -74,4 +72,16 @@ class DocBuildSpec extends ObjectBehavior
         $httpAdapter->get('documents/' . $id)->willReturn($expected);
         $this->getDocument($id)->shouldReturn($expected);
     }
+
+    function it_can_create_a_document_with_a_payload(HttpAdapter $httpAdapter){}
+
+    function it_can_create_a_document_without_a_payload(HttpAdapter $httpAdapter){}
+
+    function it_can_upload_a_payload_to_an_existing_document(HttpAdapter $httpAdapter){}
+
+    function it_can_create_a_callback(HttpAdapter $httpAdapter){}
+
+    function it_can_combine_a_document(HttpAdapter $httpAdapter){}
+
+    function it_can_convert_a_doc_to_pdf(HttpAdapter $httpAdapter){}
 }
