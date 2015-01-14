@@ -110,7 +110,17 @@ class GuzzleAdapterSpec extends ObjectBehavior
 
     function it_can_perform_a_get_request_with_headers(ClientInterface $client)
     {
+        $url = 'http://doc.build/api/documents';
+        $response = new Response(200);
+        $response->setBody(Stream::factory(""));
 
+        $client->get($url, [
+            'exceptions' => false,
+            'query' => [],
+            'headers' => ['Auth' => 'myapikey'],
+        ])->willReturn($response);
+
+        $this->get('documents', [], ['Auth' => 'myapikey']);
     }
 
     function it_can_perform_a_post_request()

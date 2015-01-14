@@ -95,24 +95,7 @@ class GuzzleAdapter implements HttpAdapter
             'headers' => $headers,
         ];
 
-        $this->response = $this->guzzle->post($this->url . $resource, $options);
-
-        if($json){
-            return json_decode($this->getResponseContent(), true);
-        }
-
-        return $this->getResponseContent();
-    }
-
-//    public function sendRequest($method, $url, $request = [], $headers = [])
-//    {
-//        $this->response = null; //Resets previous response
-//
-//        $options = [
-//            'exceptions' => false,
-//            ''
-//        ];
-//
+//TODO error handling in both get and post
 //        try {
 //            $request = $this->guzzle->createRequest($method, $url, $options);
 //            $this->response = $this->guzzle->send($request);
@@ -122,7 +105,15 @@ class GuzzleAdapter implements HttpAdapter
 //            // dns/connection timeout
 //        } catch (TransferException $e) {
 //        }
-//    }
+
+        $this->response = $this->guzzle->post($this->url . $resource, $options);
+
+        if($json){
+            return json_decode($this->getResponseContent(), true);
+        }
+
+        return $this->getResponseContent();
+    }
 
     public function getResponseCode()
     {
