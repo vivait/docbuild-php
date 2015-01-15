@@ -87,18 +87,16 @@ class DocBuild
      */
     public function authorise($clientId, $clientSecret)
     {
-        $response = $this->http->get('oauth/', ['client_id' => $clientId, 'client_secret' => $clientSecret]); //TODO
+        $response = $this->http->get('oauth/token', ['client_id' => $clientId, 'client_secret' => $clientSecret]); //TODO
 
         $code = $this->http->getResponseCode();
 
         if ($code == 200 && array_key_exists('access_token', $response)) {
             return $response['access_token'];
-        } elseif ($code == 401 || $code == 403) {
-            throw new UnauthorizedException(json_decode($response));
-        } elseif ($code == 400) {
-            throw new BadRequestException(json_decode($response));
+        } elseif ($code == 400 || $code == 401 || $code == 403) {
+            throw new UnauthorizedException(json_encode($response), $code);
         } else {
-            throw new HttpException(json_decode($response), $code);
+            throw new HttpException(json_encode($response), $code);
         }
     }
 

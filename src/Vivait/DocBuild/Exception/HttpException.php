@@ -2,6 +2,6 @@
 
 namespace Vivait\DocBuild\Exception;
 
-class HttpException extends \HttpException
+class HttpException extends \RuntimeException
 {
 }

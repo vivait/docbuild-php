@@ -4,6 +4,7 @@ namespace spec\Vivait\DocBuild;
 
 use PhpSpec\ObjectBehavior;
 use Prophecy\Argument;
+use Vivait\DocBuild\Exception\UnauthorizedException;
 use Vivait\DocBuild\Http\HttpAdapter;
 
 class DocBuildSpec extends ObjectBehavior
@@ -26,14 +27,13 @@ class DocBuildSpec extends ObjectBehavior
 
         $token = 'myauthtoken';
 
-        $expected = ['auth_token' => $token]; //TODO
+        $expected = ['access_token' => $token, 'expires_in' => 3600, 'token_type' => 'bearer', 'scope' => '']; //TODO
 
-        $httpAdapter->get('oauth/token')->willReturn($expected);
+        $httpAdapter->get('oauth/token', ['client_id' => $clientId, 'client_secret' => $clientSecret])->willReturn($expected);
         $httpAdapter->getResponseCode()->willReturn(200);
 
-        $this->shouldNotThrow('Vivait\DocBuild\UnauthorizedException')->during('authorise', [$clientId, $clientSecret]);
-        $this->shouldNotThrow('Vivait\DocBuild\BadRequestException')->during('authorise', [$clientId, $clientSecret]);
-        $this->shouldNotThrow('Vivait\DocBuild\HttpException')->during('authorise', [$clientId, $clientSecret]);
+        $this->shouldNotThrow('Vivait\DocBuild\Exception\UnauthorizedException')->during('authorise', [$clientId, $clientSecret]);
+        $this->shouldNotThrow('Vivait\DocBuild\Exception\HttpException')->during('authorise', [$clientId, $clientSecret]);
 
         $this->authorise($clientId, $clientSecret)->shouldReturn($token);
     }
@@ -44,15 +44,12 @@ class DocBuildSpec extends ObjectBehavior
 
         $token = 'myauthtoken';
 
-        $expected = ['error' => 'access denied']; //TODO
+        $expected = ['error' => 'invalid_client', 'error_description' => 'The client credentials are invalid']; //TODO
 
-        $httpAdapter->get('oauth/token')->willReturn($expected);
-        $httpAdapter->getResponseCode()->willReturn(401);
+        $httpAdapter->get('oauth/token', ['client_id' => $clientId, 'client_secret' => $clientSecret])->willReturn($expected);
+        $httpAdapter->getResponseCode()->willReturn(400);
 
-        $this->shouldThrow('Vivait\DocBuild\UnauthorizedException')->during('authorise', [$clientId, $clientSecret]);
-        $this->shouldNotThrow('Vivait\DocBuild\BadRequestException')->during('authorise', [$clientId, $clientSecret]);
-        $this->shouldNotThrow('Vivait\DocBuild\HttpException')->during('authorise', [$clientId, $clientSecret]);
-        $this->authorise($clientId, $clientSecret)->shouldNotReturn($token);
+        $this->shouldThrow(new UnauthorizedException('{"error":"invalid_client","error_description":"The client credentials are invalid"}', 400))->during('authorise', [$clientId, $clientSecret]);
     }
 
     function it_can_get_a_list_of_documents(HttpAdapter $httpAdapter)
