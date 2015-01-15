@@ -12,12 +12,6 @@ interface HttpAdapter
     public function setUrl($url);
 
     /**
-     * @param $key
-     * @return self
-     */
-    public function setKey($key);
-
-    /**
      * @param $resource
      * @param array $request
      * @param array $headers
@@ -33,7 +27,6 @@ interface HttpAdapter
      */
     public function post($resource, $request = [], $headers = []);
 
-
     /**
      * @return int
      */
@@ -43,4 +36,9 @@ interface HttpAdapter
      * @return array
      */
     public function getResponseHeaders();
+
+    /**
+     * @return string
+     */
+    public function getResponseContent();
 }

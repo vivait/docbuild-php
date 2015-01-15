@@ -14,11 +14,10 @@ class DocBuildSpec extends ObjectBehavior
         $this->shouldHaveType('Vivait\DocBuild\DocBuild');
     }
 
-    function let($key = 'myapikey', HttpAdapter $httpAdapter)
+    function let(HttpAdapter $httpAdapter)
     {
         $httpAdapter->setUrl('http://doc.build/api')->shouldBeCalled();
-        $httpAdapter->setKey($key)->shouldBeCalled();
-        $this->beConstructedWith($key, $httpAdapter);
+        $this->beConstructedWith($httpAdapter);
     }
 
     function it_can_authorise_the_client(HttpAdapter $httpAdapter)
@@ -38,7 +37,7 @@ class DocBuildSpec extends ObjectBehavior
         $this->authorise($clientId, $clientSecret)->shouldReturn($token);
     }
 
-    function it_throws_access_denied_if_auth_key_invalid(HttpAdapter $httpAdapter)
+    function it_throws_access_denied_if_auth_token_invalid(HttpAdapter $httpAdapter)
     {
         $clientId = 'myclientid'; $clientSecret = 'myclientsecret';
 

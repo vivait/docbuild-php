@@ -17,10 +17,15 @@ class DocBuild
     private $http;
 
     /**
-     * @param $key
-     * @param HttpAdapter $http
+     * @var string
      */
-    public function __construct($key, HttpAdapter $http = null)
+    private $token;
+
+    /**
+     * @param HttpAdapter $http
+     * @internal param $key
+     */
+    public function __construct(HttpAdapter $http = null)
     {
         if (!$http) {
             $this->http = new GuzzleAdapter();
@@ -29,7 +34,6 @@ class DocBuild
         }
 
         $this->http->setUrl(self::URL);
-        $this->http->setKey($key);
     }
 
     public function createDocument($name, $extension, $file = null)
@@ -92,7 +96,8 @@ class DocBuild
         $code = $this->http->getResponseCode();
 
         if ($code == 200 && array_key_exists('access_token', $response)) {
-            return $response['access_token'];
+            $this->token = $response['access_token'];
+            return $this->token;
         } elseif ($code == 400 || $code == 401 || $code == 403) {
             throw new UnauthorizedException(json_encode($response), $code);
         } else {

@@ -31,12 +31,6 @@ class GuzzleAdapterSpec extends ObjectBehavior
         $this->setUrl($url)->shouldReturn($this);
     }
 
-    function it_can_set_the_api_key()
-    {
-        $key = 'myapikey';
-        $this->setKey($key)->shouldReturn($this);
-    }
-
     function it_can_get_the_response_headers(ClientInterface $client)
     {
         $url = 'http://doc.build/api/documents/someid/payload';

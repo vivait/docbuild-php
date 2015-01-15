@@ -19,15 +19,9 @@ class GuzzleAdapter implements HttpAdapter
     private $url;
 
     /**
-     * @var string
-     */
-    private $key;
-
-    /**
      * @var Response
      */
     private $response;
-
 
     /**
      * @param ClientInterface $guzzle
@@ -48,17 +42,6 @@ class GuzzleAdapter implements HttpAdapter
     public function setUrl($url)
     {
         $this->url = $url;
-
-        return $this;
-    }
-
-    /**
-     * @param $key
-     * @return $this
-     */
-    public function setKey($key)
-    {
-        $this->key = $key;
 
         return $this;
     }
@@ -92,7 +75,7 @@ class GuzzleAdapter implements HttpAdapter
             'headers' => $headers,
         ];
 
-//TODO error handling in both get and post
+        //TODO error handling in both get and post
 //        try {
 //            $request = $this->guzzle->createRequest($method, $url, $options);
 //            $this->response = $this->guzzle->send($request);
@@ -124,6 +107,9 @@ class GuzzleAdapter implements HttpAdapter
 
     public function getResponseContent()
     {
+        //TODO getBody() probably needs checking for null, as some responses may not return a body 204, whether guzzle handles
+        //this by not setting a body, I'm not sure.
+
         return $this->response->getBody()->getContents();
     }
 
