@@ -2,6 +2,9 @@
 
 namespace Vivait\DocBuild;
 
+use Vivait\DocBuild\Exception\BadRequestException;
+use Vivait\DocBuild\Exception\HttpException;
+use Vivait\DocBuild\Exception\UnauthorizedException;
 use Vivait\DocBuild\Http\GuzzleAdapter;
 use Vivait\DocBuild\Http\HttpAdapter;
 
@@ -72,5 +75,35 @@ class DocBuild
     public function getHttpAdapter()
     {
         return $this->http;
+    }
+
+    /**
+     * @param $clientId
+     * @param $clientSecret
+     * @return string
+     * @throws BadRequestException
+     * @throws HttpException
+     * @throws UnauthorizedException
+     */
+    public function authorise($clientId, $clientSecret)
+    {
+        $response = $this->http->get('oauth/', ['client_id' => $clientId, 'client_secret' => $clientSecret]); //TODO
+
+        $code = $this->http->getResponseCode();
+
+        if ($code == 200 && array_key_exists('access_token', $response)) {
+            return $response['access_token'];
+        } elseif ($code == 401 || $code == 403) {
+            throw new UnauthorizedException(json_decode($response));
+        } elseif ($code == 400) {
+            throw new BadRequestException(json_decode($response));
+        } else {
+            throw new HttpException(json_decode($response), $code);
+        }
+    }
+
+    public function authorize($clientId, $clientSecret)
+    {
+        return $this->authorise($clientId, $clientSecret);
     }
 }

@@ -20,6 +20,41 @@ class DocBuildSpec extends ObjectBehavior
         $this->beConstructedWith($key, $httpAdapter);
     }
 
+    function it_can_authorise_the_client(HttpAdapter $httpAdapter)
+    {
+        $clientId = 'myclientid'; $clientSecret = 'myclientsecret';
+
+        $token = 'myauthtoken';
+
+        $expected = ['auth_token' => $token]; //TODO
+
+        $httpAdapter->get('oauth/token')->willReturn($expected);
+        $httpAdapter->getResponseCode()->willReturn(200);
+
+        $this->shouldNotThrow('Vivait\DocBuild\UnauthorizedException')->during('authorise', [$clientId, $clientSecret]);
+        $this->shouldNotThrow('Vivait\DocBuild\BadRequestException')->during('authorise', [$clientId, $clientSecret]);
+        $this->shouldNotThrow('Vivait\DocBuild\HttpException')->during('authorise', [$clientId, $clientSecret]);
+
+        $this->authorise($clientId, $clientSecret)->shouldReturn($token);
+    }
+
+    function it_throws_access_denied_if_auth_key_invalid(HttpAdapter $httpAdapter)
+    {
+        $clientId = 'myclientid'; $clientSecret = 'myclientsecret';
+
+        $token = 'myauthtoken';
+
+        $expected = ['error' => 'access denied']; //TODO
+
+        $httpAdapter->get('oauth/token')->willReturn($expected);
+        $httpAdapter->getResponseCode()->willReturn(401);
+
+        $this->shouldThrow('Vivait\DocBuild\UnauthorizedException')->during('authorise', [$clientId, $clientSecret]);
+        $this->shouldNotThrow('Vivait\DocBuild\BadRequestException')->during('authorise', [$clientId, $clientSecret]);
+        $this->shouldNotThrow('Vivait\DocBuild\HttpException')->during('authorise', [$clientId, $clientSecret]);
+        $this->authorise($clientId, $clientSecret)->shouldNotReturn($token);
+    }
+
     function it_can_get_a_list_of_documents(HttpAdapter $httpAdapter)
     {
         $expected = [
