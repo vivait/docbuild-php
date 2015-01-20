@@ -5,6 +5,9 @@ namespace Vivait\DocBuild\Http;
 
 interface HttpAdapter
 {
+    const TOKEN_EXPIRED = 'The access token provided has expired.';
+    const TOKEN_INVALID = 'The access token provided is invalid.';
+
     /**
      * @param $url
      * @return self

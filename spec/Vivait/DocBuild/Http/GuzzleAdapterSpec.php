@@ -183,13 +183,13 @@ class GuzzleAdapterSpec extends ObjectBehavior
         );
     }
 
-    function it_does_not_throw_exceptions_for_http_errors()
-    {
-
-    }
-
-    function it_throws_exceptions_for_request_errors()
-    {
-
-    }
+//    function it_does_not_throw_exceptions_for_http_errors()
+//    {
+//
+//    }
+//
+//    function it_throws_exceptions_for_request_errors()
+//    {
+//
+//    }
 }

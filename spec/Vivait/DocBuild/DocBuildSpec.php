@@ -4,7 +4,8 @@ namespace spec\Vivait\DocBuild;
 
 use PhpSpec\ObjectBehavior;
 use Prophecy\Argument;
-use Vivait\DocBuild\Exception\EmptyTokenException;
+use Vivait\DocBuild\Exception\BadCredentialsException;
+use Vivait\DocBuild\Exception\TokenEmptyException;
 use Vivait\DocBuild\Exception\UnauthorizedException;
 use Vivait\DocBuild\Http\HttpAdapter;
 
@@ -18,33 +19,96 @@ class DocBuildSpec extends ObjectBehavior
     function let(HttpAdapter $httpAdapter)
     {
         $httpAdapter->setUrl('http://doc.build/api')->shouldBeCalled();
-        $this->beConstructedWith($httpAdapter);
+        $this->beConstructedWith(null, null, $httpAdapter);
     }
 
-    function it_can_authorise_the_client(HttpAdapter $httpAdapter)
+    function it_requires_client_credentials_to_be_entered()
     {
-//        $clientId = 'myclientid'; $clientSecret = 'myclientsecret';
-//
-//        $token = 'myauthtoken';
-//
-//        $expected = ['access_token' => $token, 'expires_in' => 3600, 'token_type' => 'bearer', 'scope' => '']; //TODO
-//
-//        $httpAdapter->get('oauth/token', ['client_id' => $clientId, 'client_secret' => $clientSecret])->willReturn($expected);
-//        $httpAdapter->getResponseCode()->willReturn(200);
-//
-//        $this->shouldNotThrow('Vivait\DocBuild\Exception\UnauthorizedException')->during('authorise', [$clientId, $clientSecret]);
-//        $this->shouldNotThrow('Vivait\DocBuild\Exception\HttpException')->during('authorise', [$clientId, $clientSecret]);
-//
-//        $this->authorise($clientId, $clientSecret)->shouldReturn($token);
+        $this->setClientId(null);
+        $this->setClientSecret(null);
+        $this->shouldThrow(new BadCredentialsException())->duringAuthorize(null, null);
+
+        $this->setClientId('myid');
+        $this->setClientSecret(null);
+        $this->shouldThrow(new BadCredentialsException())->duringAuthorize(null, null);
+
+        $this->setClientId(null);
+        $this->setClientSecret(null);
+        $this->shouldThrow(new BadCredentialsException())->duringAuthorize('clientid');
+
+        $this->setClientId(null);
+        $this->setClientSecret(null);
+        $this->shouldNotThrow(new BadCredentialsException())->duringAuthorize('clientid', 'clientsecret');
+
+        $this->setClientId('clientId');
+        $this->setClientSecret('clientSecret');
+        $this->shouldNotThrow(new BadCredentialsException())->duringAuthorize();
     }
 
-    function it_can_re_authorise_the_client_on_token_expiry(HttpAdapter $httpAdapter)
+    function it_can_authorize_the_client(HttpAdapter $httpAdapter)
     {
+        $token = 'myapitoken1';
+        $response = ['access_token' => $token, 'expires_in' => 3600, 'token_type' => 'bearer', 'scope' => ''];
+        $httpAdapter->get('oauth/token', [
+            'client_id' => 'myid',
+            'client_secret' => 'somesecret',
+            'grant_type' => 'client_credentials'
+        ])->willReturn($response);
 
+        $httpAdapter->getResponseCode()->willReturn(200);
+
+        $this->authorize('myid', 'somesecret')->shouldEqual($token);
     }
 
-    function it_throws_access_denied_if_auth_token_invalid(HttpAdapter $httpAdapter)
+    function it_errors_with_invalid_credentials(HttpAdapter $httpAdapter)
     {
+        $response = ["error" => "invalid_client", "error_description" =>"The client credentials are invalid"];
+        $httpAdapter->get('oauth/token', [
+            'client_id' => 'myid',
+            'client_secret' => 'anincorrectsecret',
+            'grant_type' => 'client_credentials'
+        ])->willReturn($response);
+
+        $httpAdapter->getResponseCode()->willReturn(401);
+
+        $this->shouldThrow(new UnauthorizedException(json_encode($response), 401))->duringAuthorize('myid', 'anincorrectsecret');
+    }
+
+    function it_can_re_authorize_the_client_on_token_expiry(HttpAdapter $httpAdapter)
+    {
+        $this->setClientId($clientId = 'clientid');
+        $this->setClientSecret($clientSecret = 'clientsecret');
+
+        $this->setToken('expiredapitoken');
+        $id = 'a1ec0371-966d-11e4-baee-08002730eb8a';
+
+        $response = ["error" => "invalid_grant", "error_description" => "The access token provided has expired."];
+        $httpAdapter->get('documents/' . $id, ['access_token' => 'expiredapitoken'], [])->willReturn($response);
+
+        //Reauth
+
+        $httpAdapter->get('oauth/token', [
+            'client_id' => $clientId,
+            'client_secret' => $clientSecret,
+            'grant_type' => 'client_credentials'
+        ]);
+        $this->authorize($clientId, $clientSecret)->shouldBeCalled();
+
+        $this->getDocument($id);
+    }
+
+    function it_can_optionally_not_auto_retry_auth(HttpAdapter $httpAdapter)
+    {
+//        $this->setToken('expiredapitoken');
+//        $id = 'a1ec0371-966d-11e4-baee-08002730eb8a';
+//
+//        $response = ["error" => "invalid_grant", "error_description" => "The access token provided has expired."];
+//        $httpAdapter->get('documents/' . $id, ['access_token' => 'expiredapitoken'], [])->willReturn($response);
+//        $this->getDocument($id);
+    }
+
+//    function it_throws_access_denied_if_auth_token_invalid(HttpAdapter $httpAdapter)
+//    {
 //        $clientId = 'myclientid'; $clientSecret = 'myclientsecret';
 //
 //        $token = 'myauthtoken';
@@ -54,25 +118,21 @@ class DocBuildSpec extends ObjectBehavior
 //        $httpAdapter->get('oauth/token', ['client_id' => $clientId, 'client_secret' => $clientSecret])->willReturn($expected);
 //        $httpAdapter->getResponseCode()->willReturn(400);
 //
-//        $this->shouldThrow(new UnauthorizedException('{"error":"invalid_client","error_description":"The client credentials are invalid"}', 400))->during('authorise', [$clientId, $clientSecret]);
-    }
+//        $this->shouldThrow(new UnauthorizedException('{"error":"invalid_client","error_description":"The client credentials are invalid"}', 400))->during('authorize', [$clientId, $clientSecret]);
+//    }
 
     function it_checks_a_token_has_been_set()
     {
-        $this->shouldThrow(new EmptyTokenException('You must set a token. Do you need to authorize?'))->during('checkToken');
+        $this->shouldThrow(new TokenEmptyException())->during('checkToken');
     }
 
     function it_throws_an_exception_if_token_not_set()
     {
-        $this->shouldThrow(new EmptyTokenException('You must set a token. Do you need to authorize?'))->during('downloadDocument', [Argument::any()]);
+        $this->shouldThrow(new TokenEmptyException())->during('downloadDocument', [Argument::any()]);
     }
 
-    function it_checks_for_expired_token(HttpAdapter $httpAdapter)
-    {
 
-    }
-
-    function it_checks_for_invalid_token(){}
+//    function it_checks_for_invalid_token(){}
 
     function it_can_get_a_list_of_documents(HttpAdapter $httpAdapter)
     {
@@ -119,7 +179,7 @@ class DocBuildSpec extends ObjectBehavior
     {
         $this->setToken('myapitoken');
         $id = 'a1ec0371-966d-11e4-baee-08002730eb8a';
-        
+
         $expected = [
             'status' => 0,
             'id' => 'a1ec0371-966d-11e4-baee-08002730eb8a',
@@ -131,15 +191,15 @@ class DocBuildSpec extends ObjectBehavior
         $this->getDocument($id)->shouldReturn($expected);
     }
 
-    function it_can_create_a_document_with_a_payload(HttpAdapter $httpAdapter){}
-
-    function it_can_create_a_document_without_a_payload(HttpAdapter $httpAdapter){}
-
-    function it_can_upload_a_payload_to_an_existing_document(HttpAdapter $httpAdapter){}
-
-    function it_can_create_a_callback(HttpAdapter $httpAdapter){}
-
-    function it_can_combine_a_document(HttpAdapter $httpAdapter){}
-
-    function it_can_convert_a_doc_to_pdf(HttpAdapter $httpAdapter){}
+//    function it_can_create_a_document_with_a_payload(HttpAdapter $httpAdapter){}
+//
+//    function it_can_create_a_document_without_a_payload(HttpAdapter $httpAdapter){}
+//
+//    function it_can_upload_a_payload_to_an_existing_document(HttpAdapter $httpAdapter){}
+//
+//    function it_can_create_a_callback(HttpAdapter $httpAdapter){}
+//
+//    function it_can_combine_a_document(HttpAdapter $httpAdapter){}
+//
+//    function it_can_convert_a_doc_to_pdf(HttpAdapter $httpAdapter){}
 }
