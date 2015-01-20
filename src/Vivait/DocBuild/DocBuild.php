@@ -3,6 +3,7 @@
 namespace Vivait\DocBuild;
 
 use Vivait\DocBuild\Exception\BadRequestException;
+use Vivait\DocBuild\Exception\EmptyTokenException;
 use Vivait\DocBuild\Exception\HttpException;
 use Vivait\DocBuild\Exception\UnauthorizedException;
 use Vivait\DocBuild\Http\GuzzleAdapter;
@@ -48,17 +49,21 @@ class DocBuild
 
     public function getDocuments()
     {
-        return $this->http->get('documents');
+        $this->checkToken();
+
+        return $this->get('documents');
     }
 
     public function getDocument($id)
     {
-        return $this->http->get('documents/' . $id);
+        $this->checkToken();
+        return $this->get('documents/' . $id);
     }
 
     public function downloadDocument($id)
     {
-        return $this->http->get('documents/' . $id . '/payload', [], [], false);
+        //TODO think about how binary data will be handled
+        return $this->get('documents/' . $id . '/payload');
     }
 
     public function createCallback($source, $url)
@@ -76,6 +81,26 @@ class DocBuild
         //TODO
     }
 
+    private function get($resource, array $request = [], array $headers = [], $tokenRequired = true)
+    {
+        if ($tokenRequired) {
+            $this->checkToken();
+            $request['access_token'] = $this->token;
+        }
+
+        return $this->http->get($resource, $request, $headers);
+    }
+
+    private function post($resource, array $request = [], array $headers = [], $tokenRequired = true)
+    {
+        if ($tokenRequired) {
+            $this->checkToken();
+            $request['access_token'] = $this->token;
+        }
+
+        return $this->http->post($resource, $request, $headers);
+    }
+
     public function getHttpAdapter()
     {
         return $this->http;
@@ -85,18 +110,19 @@ class DocBuild
      * @param $clientId
      * @param $clientSecret
      * @return string
-     * @throws BadRequestException
-     * @throws HttpException
-     * @throws UnauthorizedException
      */
     public function authorise($clientId, $clientSecret)
     {
-        $response = $this->http->get('oauth/token', ['client_id' => $clientId, 'client_secret' => $clientSecret]); //TODO
+        $response = $this->http->get(
+            'oauth/token',
+            ['client_id' => $clientId, 'client_secret' => $clientSecret, 'grant_type' => 'client-credentials']
+        );
 
         $code = $this->http->getResponseCode();
 
         if ($code == 200 && array_key_exists('access_token', $response)) {
             $this->token = $response['access_token'];
+
             return $this->token;
         } elseif ($code == 400 || $code == 401 || $code == 403) {
             throw new UnauthorizedException(json_encode($response), $code);
@@ -105,8 +131,29 @@ class DocBuild
         }
     }
 
-    public function authorize($clientId, $clientSecret)
+    /**
+     * @param $clientId
+     * @param $clientSecret
+     * @param $grantType
+     * @return string
+     */
+    public function authorize($clientId, $clientSecret, $grantType = 'client_credentials')
     {
-        return $this->authorise($clientId, $clientSecret);
+        return $this->authorise($clientId, $clientSecret, $grantType);
+    }
+
+    /**
+     * @param $token
+     */
+    public function setToken($token)
+    {
+        $this->token = $token;
+    }
+
+    public function checkToken()
+    {
+        if (!$this->token) {
+            throw new EmptyTokenException('You must set a token. Do you need to authorize?');
+        }
     }
 }

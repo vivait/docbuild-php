@@ -4,6 +4,7 @@ namespace spec\Vivait\DocBuild;
 
 use PhpSpec\ObjectBehavior;
 use Prophecy\Argument;
+use Vivait\DocBuild\Exception\EmptyTokenException;
 use Vivait\DocBuild\Exception\UnauthorizedException;
 use Vivait\DocBuild\Http\HttpAdapter;
 
@@ -22,37 +23,61 @@ class DocBuildSpec extends ObjectBehavior
 
     function it_can_authorise_the_client(HttpAdapter $httpAdapter)
     {
-        $clientId = 'myclientid'; $clientSecret = 'myclientsecret';
+//        $clientId = 'myclientid'; $clientSecret = 'myclientsecret';
+//
+//        $token = 'myauthtoken';
+//
+//        $expected = ['access_token' => $token, 'expires_in' => 3600, 'token_type' => 'bearer', 'scope' => '']; //TODO
+//
+//        $httpAdapter->get('oauth/token', ['client_id' => $clientId, 'client_secret' => $clientSecret])->willReturn($expected);
+//        $httpAdapter->getResponseCode()->willReturn(200);
+//
+//        $this->shouldNotThrow('Vivait\DocBuild\Exception\UnauthorizedException')->during('authorise', [$clientId, $clientSecret]);
+//        $this->shouldNotThrow('Vivait\DocBuild\Exception\HttpException')->during('authorise', [$clientId, $clientSecret]);
+//
+//        $this->authorise($clientId, $clientSecret)->shouldReturn($token);
+    }
 
-        $token = 'myauthtoken';
+    function it_can_re_authorise_the_client_on_token_expiry(HttpAdapter $httpAdapter)
+    {
 
-        $expected = ['access_token' => $token, 'expires_in' => 3600, 'token_type' => 'bearer', 'scope' => '']; //TODO
-
-        $httpAdapter->get('oauth/token', ['client_id' => $clientId, 'client_secret' => $clientSecret])->willReturn($expected);
-        $httpAdapter->getResponseCode()->willReturn(200);
-
-        $this->shouldNotThrow('Vivait\DocBuild\Exception\UnauthorizedException')->during('authorise', [$clientId, $clientSecret]);
-        $this->shouldNotThrow('Vivait\DocBuild\Exception\HttpException')->during('authorise', [$clientId, $clientSecret]);
-
-        $this->authorise($clientId, $clientSecret)->shouldReturn($token);
     }
 
     function it_throws_access_denied_if_auth_token_invalid(HttpAdapter $httpAdapter)
     {
-        $clientId = 'myclientid'; $clientSecret = 'myclientsecret';
-
-        $token = 'myauthtoken';
-
-        $expected = ['error' => 'invalid_client', 'error_description' => 'The client credentials are invalid']; //TODO
-
-        $httpAdapter->get('oauth/token', ['client_id' => $clientId, 'client_secret' => $clientSecret])->willReturn($expected);
-        $httpAdapter->getResponseCode()->willReturn(400);
-
-        $this->shouldThrow(new UnauthorizedException('{"error":"invalid_client","error_description":"The client credentials are invalid"}', 400))->during('authorise', [$clientId, $clientSecret]);
+//        $clientId = 'myclientid'; $clientSecret = 'myclientsecret';
+//
+//        $token = 'myauthtoken';
+//
+//        $expected = ['error' => 'invalid_client', 'error_description' => 'The client credentials are invalid']; //TODO
+//
+//        $httpAdapter->get('oauth/token', ['client_id' => $clientId, 'client_secret' => $clientSecret])->willReturn($expected);
+//        $httpAdapter->getResponseCode()->willReturn(400);
+//
+//        $this->shouldThrow(new UnauthorizedException('{"error":"invalid_client","error_description":"The client credentials are invalid"}', 400))->during('authorise', [$clientId, $clientSecret]);
     }
+
+    function it_checks_a_token_has_been_set()
+    {
+        $this->shouldThrow(new EmptyTokenException('You must set a token. Do you need to authorize?'))->during('checkToken');
+    }
+
+    function it_throws_an_exception_if_token_not_set()
+    {
+        $this->shouldThrow(new EmptyTokenException('You must set a token. Do you need to authorize?'))->during('downloadDocument', [Argument::any()]);
+    }
+
+    function it_checks_for_expired_token(HttpAdapter $httpAdapter)
+    {
+
+    }
+
+    function it_checks_for_invalid_token(){}
 
     function it_can_get_a_list_of_documents(HttpAdapter $httpAdapter)
     {
+        $this->setToken('myapitoken');
+
         $expected = [
             [
                 'status' => 0,
@@ -68,15 +93,16 @@ class DocBuildSpec extends ObjectBehavior
             ],
         ];
 
-        $httpAdapter->get('documents')->willReturn($expected);
+        $httpAdapter->get('documents', ['access_token' => 'myapitoken'], [])->willReturn($expected);
         $this->getDocuments()->shouldReturn($expected);
     }
 
     function it_can_download_a_document(HttpAdapter $httpAdapter)
     {
+        $this->setToken('myapitoken');
         $id = 'a1ec0371-966d-11e4-baee-08002730eb8a';
 
-        $httpAdapter->get('documents/' . $id . '/payload' , [], [], false)->shouldBeCalled();
+        $httpAdapter->get('documents/' . $id . '/payload' , ['access_token' => 'myapitoken'], [])->shouldBeCalled();
 
         $headers = [
             'Content-Disposition' => ['attachment'],
@@ -91,8 +117,9 @@ class DocBuildSpec extends ObjectBehavior
 
     function it_can_get_document_info(HttpAdapter $httpAdapter)
     {
+        $this->setToken('myapitoken');
         $id = 'a1ec0371-966d-11e4-baee-08002730eb8a';
-
+        
         $expected = [
             'status' => 0,
             'id' => 'a1ec0371-966d-11e4-baee-08002730eb8a',
@@ -100,7 +127,7 @@ class DocBuildSpec extends ObjectBehavior
             'extension' => 'docx',
         ];
 
-        $httpAdapter->get('documents/' . $id)->willReturn($expected);
+        $httpAdapter->get('documents/' . $id, ['access_token' => 'myapitoken'], [])->willReturn($expected);
         $this->getDocument($id)->shouldReturn($expected);
     }
 
