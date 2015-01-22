@@ -4,9 +4,9 @@ namespace spec\Vivait\DocBuild;
 
 use PhpSpec\ObjectBehavior;
 use Prophecy\Argument;
+use Vivait\DocBuild\Auth\Auth;
 use Vivait\DocBuild\Exception\BadCredentialsException;
-use Vivait\DocBuild\Exception\TokenEmptyException;
-use Vivait\DocBuild\Exception\UnauthorizedException;
+use Vivait\DocBuild\Exception\TokenExpiredException;
 use Vivait\DocBuild\Http\HttpAdapter;
 
 class DocBuildSpec extends ObjectBehavior
@@ -16,129 +16,39 @@ class DocBuildSpec extends ObjectBehavior
         $this->shouldHaveType('Vivait\DocBuild\DocBuild');
     }
 
-    function let(HttpAdapter $httpAdapter)
+    function let(HttpAdapter $httpAdapter, Auth $auth)
     {
-        $httpAdapter->setUrl('http://doc.build/api')->shouldBeCalled();
-        $this->beConstructedWith(null, null, [], $httpAdapter);
+        $httpAdapter->setUrl('http://doc.build/api/')->shouldBeCalled();
+        $this->beConstructedWith('myid', 'mysecret', [], $httpAdapter, $auth);
     }
 
-    function it_requires_client_credentials_to_be_entered()
-    {
-        $this->setClientId(null);
-        $this->setClientSecret(null);
-        $this->shouldThrow(new BadCredentialsException())->duringAuthorize(null, null);
-
-        $this->setClientId('myid');
-        $this->setClientSecret(null);
-        $this->shouldThrow(new BadCredentialsException())->duringAuthorize(null, null);
-
-        $this->setClientId(null);
-        $this->setClientSecret(null);
-        $this->shouldThrow(new BadCredentialsException())->duringAuthorize('clientid');
-
-        $this->setClientId(null);
-        $this->setClientSecret(null);
-        $this->shouldNotThrow(new BadCredentialsException())->duringAuthorize('clientid', 'clientsecret');
-
-        $this->setClientId('clientId');
-        $this->setClientSecret('clientSecret');
-        $this->shouldNotThrow(new BadCredentialsException())->duringAuthorize();
-    }
-
-    function it_can_authorize_the_client(HttpAdapter $httpAdapter)
-    {
-        $token = 'myapitoken1';
-        $response = ['access_token' => $token, 'expires_in' => 3600, 'token_type' => 'bearer', 'scope' => ''];
-        $httpAdapter->get('oauth/token', [
-            'client_id' => 'myid',
-            'client_secret' => 'somesecret',
-            'grant_type' => 'client_credentials'
-        ])->willReturn($response);
-
-        $httpAdapter->getResponseCode()->willReturn(200);
-
-        $this->authorize('myid', 'somesecret')->shouldEqual($token);
-    }
-
-    function it_errors_with_invalid_credentials(HttpAdapter $httpAdapter)
-    {
-        $response = ["error" => "invalid_client", "error_description" =>"The client credentials are invalid"];
-        $httpAdapter->get('oauth/token', [
-            'client_id' => 'myid',
-            'client_secret' => 'anincorrectsecret',
-            'grant_type' => 'client_credentials'
-        ])->willReturn($response);
-
-        $httpAdapter->getResponseCode()->willReturn(401);
-
-        $this->shouldThrow(new UnauthorizedException(json_encode($response), 401))->duringAuthorize('myid', 'anincorrectsecret');
-    }
-
-    function it_can_re_authorize_the_client_on_token_expiry(HttpAdapter $httpAdapter)
-    {
-        $this->setClientId($clientId = 'clientid');
-        $this->setClientSecret($clientSecret = 'clientsecret');
-        $this->setOptions(['token_refresh' => true]);
-
-        $this->setToken('expiredapitoken');
-        $id = 'a1ec0371-966d-11e4-baee-08002730eb8a';
-
-        $response = ["error" => "invalid_grant", "error_description" => "The access token provided has expired."];
-        $httpAdapter->get('documents', ['access_token' => 'expiredapitoken'], []);
-
-        $this->getDocuments();
-        //Reauth
-
-//        $httpAdapter->get('oauth/token', [
-//            'client_id' => $clientId,
-//            'client_secret' => $clientSecret,
-//            'grant_type' => 'client_credentials'
-//        ]);
-//        $this->authorize($clientId, $clientSecret)->shouldBeCalled();
-//
-//        $this->getDocument($id);
-    }
-
-    function it_can_optionally_not_auto_retry_auth(HttpAdapter $httpAdapter)
-    {
+//    function it_can_re_authorize_the_client_on_token_expiry(HttpAdapter $httpAdapter)
+//    {
+//        $this->setClientId($clientId = 'clientid');
+//        $this->setClientSecret($clientSecret = 'clientsecret');
+//        $this->setOptions(['token_refresh' => true]);
 //        $this->setToken('expiredapitoken');
 //        $id = 'a1ec0371-966d-11e4-baee-08002730eb8a';
 //
-//        $response = ["error" => "invalid_grant", "error_description" => "The access token provided has expired."];
-//        $httpAdapter->get('documents/' . $id, ['access_token' => 'expiredapitoken'], [])->willReturn($response);
-//        $this->getDocument($id);
-    }
-
-//    function it_throws_access_denied_if_auth_token_invalid(HttpAdapter $httpAdapter)
-//    {
-//        $clientId = 'myclientid'; $clientSecret = 'myclientsecret';
+//        $httpAdapter->get('documents', ['access_token' => 'expiredapitoken'], [])->willThrow(new TokenExpiredException());
 //
-//        $token = 'myauthtoken';
+//        $response = ['access_token' => 'newtoken', 'expires_in' => 3600, 'token_type' => 'bearer', 'scope' => ''];
+//        $httpAdapter->get('oauth/token', [
+//            'client_id' => 'clientid',
+//            'client_secret' => 'clientsecret',
+//            'grant_type' => "client_credentials"
+//        ])->willReturn($response);
 //
-//        $expected = ['error' => 'invalid_client', 'error_description' => 'The client credentials are invalid']; //TODO
-//
-//        $httpAdapter->get('oauth/token', ['client_id' => $clientId, 'client_secret' => $clientSecret])->willReturn($expected);
-//        $httpAdapter->getResponseCode()->willReturn(400);
-//
-//        $this->shouldThrow(new UnauthorizedException('{"error":"invalid_client","error_description":"The client credentials are invalid"}', 400))->during('authorize', [$clientId, $clientSecret]);
+//        $httpAdapter->getResponseCode()->willReturn(200);
+//        $httpAdapter->get('documents', ['access_token' => 'newtoken'], [])->shouldBeCalled();
+//        $this->getDocuments();
 //    }
 
-    function it_checks_a_token_has_been_set()
+
+    function it_can_get_a_list_of_documents(HttpAdapter $httpAdapter, Auth $auth)
     {
-        $this->shouldThrow(new TokenEmptyException())->during('checkToken');
-    }
-
-    function it_throws_an_exception_if_token_not_set()
-    {
-        $this->shouldThrow(new TokenEmptyException())->during('downloadDocument', [Argument::any()]);
-    }
-
-
-//    function it_checks_for_invalid_token(){}
-
-    function it_can_get_a_list_of_documents(HttpAdapter $httpAdapter)
-    {
-        $this->setToken('myapitoken');
+        $auth->hasAccessToken()->willReturn(true);
+        $auth->getAccessToken()->willReturn('myapitoken');
 
         $expected = [
             [
@@ -159,9 +69,12 @@ class DocBuildSpec extends ObjectBehavior
         $this->getDocuments()->shouldReturn($expected);
     }
 
-    function it_can_download_a_document(HttpAdapter $httpAdapter)
+    function it_can_download_a_document(HttpAdapter $httpAdapter, Auth $auth)
     {
-        $this->setToken('myapitoken');
+
+        $auth->hasAccessToken()->willReturn(true);
+        $auth->getAccessToken()->willReturn('myapitoken');
+
         $id = 'a1ec0371-966d-11e4-baee-08002730eb8a';
 
         $httpAdapter->get('documents/' . $id . '/payload' , ['access_token' => 'myapitoken'], [])->shouldBeCalled();
@@ -177,9 +90,12 @@ class DocBuildSpec extends ObjectBehavior
         $this->getHttpAdapter()->getResponseHeaders()->shouldReturn($headers);
     }
 
-    function it_can_get_document_info(HttpAdapter $httpAdapter)
+    function it_can_get_document_info(HttpAdapter $httpAdapter, Auth $auth)
     {
-        $this->setToken('myapitoken');
+
+        $auth->hasAccessToken()->willReturn(true);
+        $auth->getAccessToken()->willReturn('myapitoken');
+
         $id = 'a1ec0371-966d-11e4-baee-08002730eb8a';
 
         $expected = [
@@ -191,6 +107,19 @@ class DocBuildSpec extends ObjectBehavior
 
         $httpAdapter->get('documents/' . $id, ['access_token' => 'myapitoken'], [])->willReturn($expected);
         $this->getDocument($id)->shouldReturn($expected);
+    }
+
+    function it_authorizes_if_no_token_set(HttpAdapter $httpAdapter, Auth $auth)
+    {
+        $auth->hasAccessToken()->willReturn(false);
+
+        $auth->authorize('myid', 'mysecret')->shouldBeCalled();
+
+        $auth->getAccessToken()->willReturn('newaccesstoken');
+        $httpAdapter->get('documents', ['access_token' => 'newaccesstoken'], [])->shouldBeCalled();
+
+
+        $this->getDocuments();
     }
 
 //    function it_can_create_a_document_with_a_payload(HttpAdapter $httpAdapter){}
