@@ -35,7 +35,7 @@ class DocBuild
 
     protected $options;
 
-    private $tokenRefreshes;
+    private $tokenRefreshes = 0;
 
     /**
      * @var Auth

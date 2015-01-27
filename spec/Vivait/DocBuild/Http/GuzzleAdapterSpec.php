@@ -3,12 +3,14 @@
 namespace spec\Vivait\DocBuild\Http;
 
 use GuzzleHttp\ClientInterface;
+use GuzzleHttp\Exception\TransferException;
 use GuzzleHttp\Message\Request;
 use GuzzleHttp\Message\Response;
 use GuzzleHttp\Message\ResponseInterface;
 use GuzzleHttp\Stream\Stream;
 use PhpSpec\ObjectBehavior;
 use Prophecy\Argument;
+use Vivait\DocBuild\Exception\AdapterException;
 
 class GuzzleAdapterSpec extends ObjectBehavior
 {
@@ -183,13 +185,12 @@ class GuzzleAdapterSpec extends ObjectBehavior
         );
     }
 
-//    function it_does_not_throw_exceptions_for_http_errors()
-//    {
-//
-//    }
-//
-//    function it_throws_exceptions_for_request_errors()
-//    {
-//
-//    }
+    function it_throws_exceptions_for_adapter_errors(ClientInterface $client)
+    {
+        $e = new TransferException();
+        $client->get(Argument::any(), Argument::any())->willThrow($e);
+
+        $adapterException = new AdapterException(null, $e);
+        $this->shouldThrow($adapterException)->duringGet(Argument::any());
+    }
 }

@@ -4,7 +4,10 @@ namespace Vivait\DocBuild\Http;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
+use GuzzleHttp\Exception\ClientException;
+use GuzzleHttp\Exception\TransferException;
 use GuzzleHttp\Message\Response;
+use Vivait\DocBuild\Exception\AdapterException;
 use Vivait\DocBuild\Exception\TokenExpiredException;
 use Vivait\DocBuild\Exception\TokenInvalidException;
 use Vivait\DocBuild\Exception\UnauthorizedException;
@@ -49,6 +52,39 @@ class GuzzleAdapter implements HttpAdapter
         return $this;
     }
 
+    /**
+     * @param $method
+     * @param $resource
+     * @param $options
+     */
+    private function sendRequest($method, $resource, $options)
+    {
+        try {
+            $this->response = $this->guzzle->$method($this->url . $resource, $options);
+        } catch (TransferException $e) {
+            throw new AdapterException($e);
+        }
+
+        if ($this->response->getStatusCode() == 401) {
+            $body = $this->response->json();
+
+            if (array_key_exists('error_description', $body)) {
+                $message = $body['error_description'];
+
+                switch ($message) {
+                    case self::TOKEN_EXPIRED :
+                        throw new TokenExpiredException();
+                        break;
+                    case self::TOKEN_INVALID :
+                        throw new TokenInvalidException();
+                        break;
+                    default:
+                        throw new UnauthorizedException($message);
+                }
+            }
+        }
+    }
+
     public function get($resource, $request = [], $headers = [], $json = true)
     {
         $this->response = null;
@@ -59,22 +95,7 @@ class GuzzleAdapter implements HttpAdapter
             'headers' => $headers,
         ];
 
-        $this->response = $this->guzzle->get($this->url . $resource, $options);
-
-
-        if($this->response->getStatusCode() == 401){
-            $body = $this->response->json();
-
-            if(array_key_exists('error_description', $body)){
-                $message = $body['error_description'];
-
-                switch($message){
-                    case self::TOKEN_EXPIRED : throw new TokenExpiredException(); break;
-                    case self::TOKEN_INVALID : throw new TokenInvalidException(); break;
-                    default: throw new UnauthorizedException($message);
-                }
-            }
-        }
+        $this->sendRequest('get', $resource, $options);
 
         if($json){
             return json_decode($this->getResponseContent(), true);
@@ -93,18 +114,7 @@ class GuzzleAdapter implements HttpAdapter
             'headers' => $headers,
         ];
 
-        //TODO error handling in both get and post
-//        try {
-//            $request = $this->guzzle->createRequest($method, $url, $options);
-//            $this->response = $this->guzzle->send($request);
-//        } catch (TooManyRedirectsException $e) {
-//
-//        } catch (RequestException $e) {
-//            // dns/connection timeout
-//        } catch (TransferException $e) {
-//        }
-
-        $this->response = $this->guzzle->post($this->url . $resource, $options);
+        $this->sendRequest('post', $resource, $options);
 
         if($json){
             return json_decode($this->getResponseContent(), true);

@@ -22,29 +22,6 @@ class DocBuildSpec extends ObjectBehavior
         $this->beConstructedWith('myid', 'mysecret', [], $httpAdapter, $auth);
     }
 
-//    function it_can_re_authorize_the_client_on_token_expiry(HttpAdapter $httpAdapter)
-//    {
-//        $this->setClientId($clientId = 'clientid');
-//        $this->setClientSecret($clientSecret = 'clientsecret');
-//        $this->setOptions(['token_refresh' => true]);
-//        $this->setToken('expiredapitoken');
-//        $id = 'a1ec0371-966d-11e4-baee-08002730eb8a';
-//
-//        $httpAdapter->get('documents', ['access_token' => 'expiredapitoken'], [])->willThrow(new TokenExpiredException());
-//
-//        $response = ['access_token' => 'newtoken', 'expires_in' => 3600, 'token_type' => 'bearer', 'scope' => ''];
-//        $httpAdapter->get('oauth/token', [
-//            'client_id' => 'clientid',
-//            'client_secret' => 'clientsecret',
-//            'grant_type' => "client_credentials"
-//        ])->willReturn($response);
-//
-//        $httpAdapter->getResponseCode()->willReturn(200);
-//        $httpAdapter->get('documents', ['access_token' => 'newtoken'], [])->shouldBeCalled();
-//        $this->getDocuments();
-//    }
-
-
     function it_can_get_a_list_of_documents(HttpAdapter $httpAdapter, Auth $auth)
     {
         $auth->hasAccessToken()->willReturn(true);
@@ -69,9 +46,9 @@ class DocBuildSpec extends ObjectBehavior
         $this->getDocuments()->shouldReturn($expected);
     }
 
+
     function it_can_download_a_document(HttpAdapter $httpAdapter, Auth $auth)
     {
-
         $auth->hasAccessToken()->willReturn(true);
         $auth->getAccessToken()->willReturn('myapitoken');
 
@@ -113,6 +90,7 @@ class DocBuildSpec extends ObjectBehavior
     {
         $auth->hasAccessToken()->willReturn(false);
 
+        /** @noinspection PhpVoidFunctionResultUsedInspection */
         $auth->authorize('myid', 'mysecret')->shouldBeCalled();
 
         $auth->getAccessToken()->willReturn('newaccesstoken');
