@@ -14,6 +14,9 @@ class Auth
      */
     private $http;
 
+    /**
+     * @var string
+     */
     private $accessToken;
 
     /**
@@ -24,6 +27,11 @@ class Auth
         $this->http = $http;
     }
 
+    /**
+     * @param $clientId
+     * @param $clientSecret
+     * @return string
+     */
     public function authorize($clientId, $clientSecret)
     {
         if(!$clientId && !$clientSecret){
@@ -38,7 +46,8 @@ class Auth
         $code = $this->http->getResponseCode();
 
         if ($code == 200 && array_key_exists('access_token', $response)) {
-            $this->accessToken = $response['access_token'];
+            $this->setAccessToken($response['access_token']);
+            return $this->getAccessToken();
         } elseif ($code == 400 || $code == 401 || $code == 403) {
             throw new UnauthorizedException(json_encode($response), $code);
         } else {
@@ -46,16 +55,25 @@ class Auth
         }
     }
 
+    /**
+     * @return string
+     */
     public function getAccessToken()
     {
         return $this->accessToken;
     }
 
+    /**
+     * @param $accessToken
+     */
     public function setAccessToken($accessToken)
     {
         $this->accessToken = $accessToken;
     }
 
+    /**
+     * @return bool
+     */
     public function hasAccessToken()
     {
         return (boolean) $this->accessToken;
