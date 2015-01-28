@@ -28,7 +28,7 @@ class AuthSpec extends ObjectBehavior
             'client_id' => 'myid',
             'client_secret' => 'anincorrectsecret',
             'grant_type' => 'client_credentials'
-        ])->willReturn($response);
+        ])->willThrow(new UnauthorizedException(json_encode($response)));
 
         $httpAdapter->getResponseCode()->willReturn(401);
 

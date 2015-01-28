@@ -3,8 +3,6 @@
 namespace Vivait\DocBuild\Auth;
 
 use Vivait\DocBuild\Exception\BadCredentialsException;
-use Vivait\DocBuild\Exception\HttpException;
-use Vivait\DocBuild\Exception\UnauthorizedException;
 use Vivait\DocBuild\Http\HttpAdapter;
 
 class Auth
@@ -48,10 +46,6 @@ class Auth
         if ($code == 200 && array_key_exists('access_token', $response)) {
             $this->setAccessToken($response['access_token']);
             return $this->getAccessToken();
-        } elseif ($code == 400 || $code == 401 || $code == 403) {
-            throw new UnauthorizedException(json_encode($response), $code);
-        } else {
-            throw new HttpException(json_encode($response), $code);
         }
     }
 

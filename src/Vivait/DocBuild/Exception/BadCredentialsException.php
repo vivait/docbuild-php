@@ -2,7 +2,7 @@
 
 namespace Vivait\DocBuild\Exception;
 
-class BadCredentialsException extends HttpException
+class BadCredentialsException extends \InvalidArgumentException
 {
     public function __construct($message = 'You must provide a client ID and a client secret')
     {

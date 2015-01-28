@@ -114,9 +114,9 @@ class GuzzleAdapterSpec extends ObjectBehavior
         $client->get(
             $url,
             [
-                'exceptions' => false,
                 'query' => [],
                 'headers' => ['Auth' => 'myapikey'],
+                'exceptions' => true,
             ]
         )->shouldBeCalled()->willReturn($response);
 
@@ -132,9 +132,9 @@ class GuzzleAdapterSpec extends ObjectBehavior
         $client->get(
             $url,
             [
-                'exceptions' => false,
                 'query' => ['id' => '1234'],
                 'headers' => ['Auth' => 'myapikey'],
+                'exceptions' => true,
             ]
         )->shouldBeCalled()->willReturn($response);
 
@@ -154,9 +154,9 @@ class GuzzleAdapterSpec extends ObjectBehavior
         $client->post(
             $url,
             [
-                'exceptions' => false,
                 'body' => ['document[name]' => 'Test File 1', 'document[extension]' => 'docx'],
                 'headers' => ['Auth' => 'myapikey'],
+                'exceptions' => true,
             ]
         )->shouldBeCalled()->willReturn($response);
 
@@ -172,9 +172,9 @@ class GuzzleAdapterSpec extends ObjectBehavior
         $client->post(
             $url,
             [
-                'exceptions' => false,
                 'body' => ['document[name]' => 'Test File 1', 'document[extension]' => 'docx'],
                 'headers' => ['Auth' => 'myapikey'],
+                'exceptions' => true,
             ]
         )->shouldBeCalled()->willReturn($response);
 

@@ -4,9 +4,11 @@ namespace Vivait\DocBuild\Http;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
+use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Exception\TransferException;
 use GuzzleHttp\Message\Response;
 use Vivait\DocBuild\Exception\AdapterException;
+use Vivait\DocBuild\Exception\HttpException;
 use Vivait\DocBuild\Exception\TokenExpiredException;
 use Vivait\DocBuild\Exception\TokenInvalidException;
 use Vivait\DocBuild\Exception\UnauthorizedException;
@@ -61,24 +63,28 @@ class GuzzleAdapter implements HttpAdapter
     {
         $this->response = null;
 
+        $options['exceptions'] = true;
+
         try {
             $this->response = $this->guzzle->$method($this->url . $resource, $options);
-        } catch (TransferException $e) {
-            throw new AdapterException($e);
-        }
+        } catch (RequestException $e){
+            if (($e->getCode() == 400 || $e->getCode() == 401 || $e->getCode() == 403) && $e->hasResponse()) {
+                $body = $e->getResponse()->json();
 
-        if ($this->response->getStatusCode() == 401) {
-            $body = $this->response->json();
+                if (array_key_exists('error_description', $body)) {
+                    $message = $body['error_description'];
 
-            if (array_key_exists('error_description', $body)) {
-                $message = $body['error_description'];
-
-                switch ($message) {
-                    case self::TOKEN_EXPIRED : throw new TokenExpiredException();
-                    case self::TOKEN_INVALID : throw new TokenInvalidException();
-                    default: throw new UnauthorizedException($message);
+                    switch ($message) {
+                        case self::TOKEN_EXPIRED : throw new TokenExpiredException();
+                        case self::TOKEN_INVALID : throw new TokenInvalidException();
+                        default: throw new UnauthorizedException($message);
+                    }
                 }
+            } else{
+                throw new HttpException($e->getMessage(), $e->getCode());
             }
+        } catch (TransferException $e) {
+            throw new AdapterException($e->getMessage());
         }
 
         if($json){
@@ -91,7 +97,6 @@ class GuzzleAdapter implements HttpAdapter
     public function get($resource, $request = [], $headers = [], $json = true)
     {
         $options = [
-            'exceptions' => false, //Disable http exceptions
             'query' => $request,
             'headers' => $headers,
         ];
@@ -102,7 +107,6 @@ class GuzzleAdapter implements HttpAdapter
     public function post($resource, $request = [], $headers = [], $json = true)
     {
         $options = [
-            'exceptions' => false, //Disable http exceptions
             'body' => $request,
             'headers' => $headers,
         ];
