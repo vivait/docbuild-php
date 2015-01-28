@@ -39,11 +39,6 @@ class DocBuild
     protected $options;
 
     /**
-     * @var int
-     */
-    protected $tokenRefreshes = 0;
-
-    /**
      * @var Auth
      */
     protected $auth;
@@ -83,8 +78,7 @@ class DocBuild
     protected function configureOptions(OptionsResolver $resolver)
     {
         $resolver->setDefaults([
-            'token_refresh' => false,
-            'max_token_refresh' => 5,
+            'token_refresh' => true,
         ]);
     }
 
@@ -118,6 +112,36 @@ class DocBuild
     protected function post($resource, array $request = [], array $headers = [])
     {
         return $this->performRequest('post', $resource, $request, $headers);
+    }
+
+    /**
+     * @param $method
+     * @param $resource
+     * @param array $request
+     * @param array $headers
+     * @return array|mixed|string
+     * @throws TokenExpiredException
+     */
+    protected function performRequest($method, $resource, array $request, array $headers)
+    {
+        if (!$this->auth->hasAccessToken()) {
+            $this->auth->authorize($this->clientId, $this->clientSecret);
+        }
+
+        try {
+            $request['access_token'] = $this->auth->getAccessToken();
+
+            return $this->http->$method($resource, $request, $headers);
+
+        } catch (TokenExpiredException $e) {
+            if ($this->options['token_refresh']) {
+                $this->auth->authorize($this->clientId, $this->clientSecret);
+
+                return $this->$method($resource, $request, $headers);
+            } else {
+                throw $e;
+            }
+        }
     }
 
     public function getAuth()
@@ -215,39 +239,6 @@ class DocBuild
     public function getHttpAdapter()
     {
         return $this->http;
-    }
-
-    /**
-     * @param $method
-     * @param $resource
-     * @param array $request
-     * @param array $headers
-     * @return array|mixed|string
-     * @throws TokenExpiredException
-     */
-    protected function performRequest($method, $resource, array $request, array $headers)
-    {
-        if (!$this->auth->hasAccessToken()) {
-            $this->auth->authorize($this->clientId, $this->clientSecret);
-        }
-
-        try {
-            $request['access_token'] = $this->auth->getAccessToken();
-
-            return $this->http->$method($resource, $request, $headers);
-
-        } catch (TokenExpiredException $e) {
-
-            if ($this->options['token_refresh'] && $this->tokenRefreshes < $this->options['max_token_refresh']) {
-                $this->auth->authorize($this->clientId, $this->clientSecret);
-                $this->tokenRefreshes++;
-
-                return $this->$method($resource, $request, $headers);
-            } else {
-                $this->tokenRefreshes = 0;
-                throw $e;
-            }
-        }
     }
 
     /**
