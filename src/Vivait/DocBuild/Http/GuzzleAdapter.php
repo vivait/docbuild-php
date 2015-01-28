@@ -4,7 +4,6 @@ namespace Vivait\DocBuild\Http;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
-use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\TransferException;
 use GuzzleHttp\Message\Response;
 use Vivait\DocBuild\Exception\AdapterException;
@@ -48,7 +47,6 @@ class GuzzleAdapter implements HttpAdapter
     public function setUrl($url)
     {
         $this->url = $url;
-
         return $this;
     }
 
