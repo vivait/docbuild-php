@@ -11,7 +11,7 @@ use Vivait\DocBuild\Http\HttpAdapter;
 
 class DocBuild
 {
-    const URL = "http://doc.build/api/";
+    const URL = "http://api.doc.build/";
 
     /**
      * @var OptionsResolver
@@ -223,6 +223,7 @@ class DocBuild
      * @param array $request
      * @param array $headers
      * @return array|mixed|string
+     * @throws TokenExpiredException
      */
     protected function performRequest($method, $resource, array $request, array $headers)
     {
@@ -252,6 +253,7 @@ class DocBuild
     /**
      * @param $path
      * @return \SplFileObject
+     * @throws FileException
      */
     protected function handleFile($path)
     {

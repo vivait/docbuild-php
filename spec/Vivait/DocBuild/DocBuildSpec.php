@@ -17,7 +17,7 @@ class DocBuildSpec extends ObjectBehavior
 
     function let(HttpAdapter $httpAdapter, Auth $auth)
     {
-        $httpAdapter->setUrl('http://doc.build/api/')->shouldBeCalled();
+        $httpAdapter->setUrl('http://api.doc.build/')->shouldBeCalled();
 
         $auth->hasAccessToken()->willReturn(true);
         $auth->getAccessToken()->willReturn('myapitoken');
