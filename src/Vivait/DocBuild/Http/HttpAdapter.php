@@ -18,17 +18,19 @@ interface HttpAdapter
      * @param $resource
      * @param array $request
      * @param array $headers
-     * @return array
+     * @param bool $json
+     * @return array|string
      */
-    public function get($resource, $request = [], $headers = []);
+    public function get($resource, $request = [], $headers = [], $json = true);
 
     /**
      * @param $resource
      * @param array $request
      * @param array $headers
-     * @return array
+     * @param bool $json
+     * @return array|string
      */
-    public function post($resource, $request = [], $headers = []);
+    public function post($resource, $request = [], $headers = [], $json = true);
 
     /**
      * @return int

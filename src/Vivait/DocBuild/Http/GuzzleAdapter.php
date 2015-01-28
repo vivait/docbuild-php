@@ -14,7 +14,7 @@ use Vivait\DocBuild\Exception\UnauthorizedException;
 class GuzzleAdapter implements HttpAdapter
 {
     /**
-     * @var Client
+     * @var ClientInterface
      */
     private $guzzle;
 
@@ -54,9 +54,13 @@ class GuzzleAdapter implements HttpAdapter
      * @param $method
      * @param $resource
      * @param $options
+     * @param bool $json
+     * @return array|string
      */
-    private function sendRequest($method, $resource, $options)
+    private function sendRequest($method, $resource, $options, $json = true)
     {
+        $this->response = null;
+
         try {
             $this->response = $this->guzzle->$method($this->url . $resource, $options);
         } catch (TransferException $e) {
@@ -70,55 +74,40 @@ class GuzzleAdapter implements HttpAdapter
                 $message = $body['error_description'];
 
                 switch ($message) {
-                    case self::TOKEN_EXPIRED :
-                        throw new TokenExpiredException();
-                        break;
-                    case self::TOKEN_INVALID :
-                        throw new TokenInvalidException();
-                        break;
-                    default:
-                        throw new UnauthorizedException($message);
+                    case self::TOKEN_EXPIRED : throw new TokenExpiredException();
+                    case self::TOKEN_INVALID : throw new TokenInvalidException();
+                    default: throw new UnauthorizedException($message);
                 }
             }
         }
+
+        if($json){
+            return json_decode($this->getResponseContent(), true);
+        }
+
+        return $this->getResponseContent();
     }
 
     public function get($resource, $request = [], $headers = [], $json = true)
     {
-        $this->response = null;
-
         $options = [
             'exceptions' => false, //Disable http exceptions
             'query' => $request,
             'headers' => $headers,
         ];
 
-        $this->sendRequest('get', $resource, $options);
-
-        if($json){
-            return json_decode($this->getResponseContent(), true);
-        }
-
-        return $this->getResponseContent();
+        return $this->sendRequest('get', $resource, $options, $json);
     }
 
     public function post($resource, $request = [], $headers = [], $json = true)
     {
-        $this->response = null;
-
         $options = [
             'exceptions' => false, //Disable http exceptions
             'body' => $request,
             'headers' => $headers,
         ];
 
-        $this->sendRequest('post', $resource, $options);
-
-        if($json){
-            return json_decode($this->getResponseContent(), true);
-        }
-
-        return $this->getResponseContent();
+        return $this->sendRequest('post', $resource, $options, $json);
     }
 
     public function getResponseCode()
