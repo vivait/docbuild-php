@@ -5,8 +5,6 @@ namespace spec\Vivait\DocBuild;
 use PhpSpec\ObjectBehavior;
 use Prophecy\Argument;
 use Vivait\DocBuild\Auth\Auth;
-use Vivait\DocBuild\Exception\BadCredentialsException;
-use Vivait\DocBuild\Exception\TokenExpiredException;
 use Vivait\DocBuild\Http\HttpAdapter;
 
 class DocBuildSpec extends ObjectBehavior
@@ -19,14 +17,30 @@ class DocBuildSpec extends ObjectBehavior
     function let(HttpAdapter $httpAdapter, Auth $auth)
     {
         $httpAdapter->setUrl('http://doc.build/api/')->shouldBeCalled();
-        $this->beConstructedWith('myid', 'mysecret', [], $httpAdapter, $auth);
-    }
 
-    function it_can_get_a_list_of_documents(HttpAdapter $httpAdapter, Auth $auth)
-    {
         $auth->hasAccessToken()->willReturn(true);
         $auth->getAccessToken()->willReturn('myapitoken');
 
+        $this->beConstructedWith('myid', 'mysecret', [], $httpAdapter, $auth);
+    }
+
+    function it_authorizes_if_no_token_set(HttpAdapter $httpAdapter, Auth $auth)
+    {
+        $auth->hasAccessToken()->willReturn(false);
+        $auth->getAccessToken()->willReturn(null);
+
+        /** @noinspection PhpVoidFunctionResultUsedInspection */
+        $auth->authorize('myid', 'mysecret')->shouldBeCalled();
+
+        $auth->getAccessToken()->willReturn('newaccesstoken');
+        $httpAdapter->get('documents', ['access_token' => 'newaccesstoken'], [])->shouldBeCalled();
+
+        $this->getDocuments();
+    }
+
+
+    function it_can_get_a_list_of_documents(HttpAdapter $httpAdapter, Auth $auth)
+    {
         $expected = [
             [
                 'status' => 0,
@@ -46,12 +60,8 @@ class DocBuildSpec extends ObjectBehavior
         $this->getDocuments()->shouldReturn($expected);
     }
 
-
     function it_can_download_a_document(HttpAdapter $httpAdapter, Auth $auth)
     {
-        $auth->hasAccessToken()->willReturn(true);
-        $auth->getAccessToken()->willReturn('myapitoken');
-
         $id = 'a1ec0371-966d-11e4-baee-08002730eb8a';
 
         $httpAdapter->get('documents/' . $id . '/payload' , ['access_token' => 'myapitoken'], [])->shouldBeCalled();
@@ -69,10 +79,6 @@ class DocBuildSpec extends ObjectBehavior
 
     function it_can_get_document_info(HttpAdapter $httpAdapter, Auth $auth)
     {
-
-        $auth->hasAccessToken()->willReturn(true);
-        $auth->getAccessToken()->willReturn('myapitoken');
-
         $id = 'a1ec0371-966d-11e4-baee-08002730eb8a';
 
         $expected = [
@@ -86,29 +92,81 @@ class DocBuildSpec extends ObjectBehavior
         $this->getDocument($id)->shouldReturn($expected);
     }
 
-    function it_authorizes_if_no_token_set(HttpAdapter $httpAdapter, Auth $auth)
-    {
-        $auth->hasAccessToken()->willReturn(false);
-
-        /** @noinspection PhpVoidFunctionResultUsedInspection */
-        $auth->authorize('myid', 'mysecret')->shouldBeCalled();
-
-        $auth->getAccessToken()->willReturn('newaccesstoken');
-        $httpAdapter->get('documents', ['access_token' => 'newaccesstoken'], [])->shouldBeCalled();
-
-
-        $this->getDocuments();
-    }
-
 //    function it_can_create_a_document_with_a_payload(HttpAdapter $httpAdapter){}
 //
-//    function it_can_create_a_document_without_a_payload(HttpAdapter $httpAdapter){}
-//
+    function it_can_create_a_document_without_a_payload(HttpAdapter $httpAdapter, Auth $auth)
+    {
+        $expected = [
+            "status" => 0,
+            "id" => "a1ec0371-966d-11e4-baee-08002730eb8a",
+            "name" => "Test Document 1",
+            "extension" => "docx",
+        ];
+
+        $request = [
+            'document[name]' => 'Test File 1',
+            'document[extension]' => 'docx',
+            'access_token' => 'myapitoken',
+        ];
+
+        $httpAdapter->post('documents', $request, [])->willReturn($expected);
+
+        $this->createDocument('Test File 1', 'docx', null)->shouldReturn($expected);
+    }
+
+
 //    function it_can_upload_a_payload_to_an_existing_document(HttpAdapter $httpAdapter){}
 //
-//    function it_can_create_a_callback(HttpAdapter $httpAdapter){}
-//
-//    function it_can_combine_a_document(HttpAdapter $httpAdapter){}
-//
-//    function it_can_convert_a_doc_to_pdf(HttpAdapter $httpAdapter){}
+    function it_can_create_a_callback(HttpAdapter $httpAdapter)
+    {
+        $expected = [];
+
+        $request = [
+            'source' => 'a1ec0371-966d-11e4-baee-08002730eb8a',
+            'url' => 'http://localhost/test/callback?id=a1ec0371-966d-11e4-baee-08002730eb8a',
+            'access_token' => 'myapitoken',
+        ];
+
+        $httpAdapter->post('callback', $request, [])->willReturn($expected);
+
+        $this->createCallback('a1ec0371-966d-11e4-baee-08002730eb8a', 'http://localhost/test/callback?id=a1ec0371-966d-11e4-baee-08002730eb8a', null)
+            ->shouldReturn($expected);
+    }
+
+    function it_can_combine_a_document(HttpAdapter $httpAdapter)
+    {
+        $expected = [];
+
+        $request = [
+            'name' => 'Combined Document 2',
+            'source' => [
+                'a1ec0371-966d-11e4-baee-08002730eb8a',
+                'a1ec0371-966d-11e4-baee-08002730eb8b',
+            ],
+            'callback' => 'http://localhost/test/callback?id=a1ec0371-966d-11e4-baee-08002730eb8a',
+            'access_token' => 'myapitoken',
+        ];
+
+        $httpAdapter->post('combine', $request, [])->willReturn($expected);
+
+        $this->combineDocument('Combined Document 2', ["a1ec0371-966d-11e4-baee-08002730eb8a", "a1ec0371-966d-11e4-baee-08002730eb8b"] , 'http://localhost/test/callback?id=a1ec0371-966d-11e4-baee-08002730eb8a')
+            ->shouldReturn($expected);
+    }
+
+
+    function it_can_convert_a_doc_to_pdf(HttpAdapter $httpAdapter)
+    {
+        $expected = [];
+
+        $request = [
+            'source' => 'a1ec0371-966d-11e4-baee-08002730eb8a',
+            'callback' => 'http://localhost/test/callback?id=a1ec0371-966d-11e4-baee-08002730eb8a',
+            'access_token' => 'myapitoken',
+        ];
+
+        $httpAdapter->post('pdf', $request, [])->willReturn($expected);
+
+        $this->convertToPdf('a1ec0371-966d-11e4-baee-08002730eb8a', 'http://localhost/test/callback?id=a1ec0371-966d-11e4-baee-08002730eb8a')
+            ->shouldReturn($expected);
+    }
 }

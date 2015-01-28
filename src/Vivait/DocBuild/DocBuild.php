@@ -12,35 +12,40 @@ class DocBuild
 {
     const URL = "http://doc.build/api/";
 
+    /**
+     * @var OptionsResolver
+     */
     protected $optionsResolver;
+
     /**
      * @var HttpAdapter
      */
-    private $http;
+    protected $http;
 
     /**
      * @var string
      */
-    private $token;
+    protected $clientSecret;
 
     /**
-     * @var
+     * @var string
      */
-    private $clientSecret;
+    protected $clientId;
 
     /**
-     * @var
+     * @var array
      */
-    private $clientId;
-
     protected $options;
 
-    private $tokenRefreshes = 0;
+    /**
+     * @var int
+     */
+    protected $tokenRefreshes = 0;
 
     /**
      * @var Auth
      */
-    private $auth;
+    protected $auth;
 
     /**
      * @param null $clientId
@@ -104,26 +109,14 @@ class DocBuild
      * @param array $headers
      * @return array
      */
-    private function get($resource, array $request = [], array $headers = [])
+    protected function get($resource, array $request = [], array $headers = [])
     {
-        if(!$this->auth->hasAccessToken()){
-            $this->auth->authorize($this->clientId, $this->clientSecret);
-        }
+        return $this->performRequest('get', $resource, $request, $headers);
+    }
 
-        try {
-            $request['access_token'] = $this->auth->getAccessToken();
-            return $this->http->get($resource, $request, $headers);
-        } catch (TokenExpiredException $e) {
-            if ($this->options['token_refresh'] &&  $this->tokenRefreshes < $this->options['max_token_refresh']) {
-                $this->auth->authorize($this->clientId, $this->clientSecret);
-                $this->tokenRefreshes++;
-                return $this->get($resource, $request, $headers);
-            }
-            else{
-                $this->tokenRefreshes = 0;
-                throw $e;
-            }
-        }
+    protected function post($resource, array $request = [], array $headers = [])
+    {
+        return $this->performRequest('post', $resource, $request, $headers);
     }
 
     public function getAuth()
@@ -131,33 +124,51 @@ class DocBuild
         return $this->auth;
     }
 
-    private function post($resource, array $request = [], array $headers = [])
-    {
-
-    }
-
-
-
+    /**
+     * @param $name
+     * @param $extension
+     * @param null $file
+     * @return array|mixed|string
+     */
     public function createDocument($name, $extension, $file = null)
     {
-        //TODO
+        //TODO handle file
+        return $this->post('documents', [
+            'document[name]' => $name,
+            'document[extension]' => $extension
+        ]);
     }
 
+    /**
+     * @param $id
+     * @param $file
+     */
     public function uploadDocument($id, $file)
     {
         //TODO
     }
 
+    /**
+     * @return array
+     */
     public function getDocuments()
     {
         return $this->get('documents');
     }
 
+    /**
+     * @param $id
+     * @return array
+     */
     public function getDocument($id)
     {
         return $this->get('documents/' . $id);
     }
 
+    /**
+     * @param $id
+     * @return array
+     */
     public function downloadDocument($id)
     {
         //TODO think about how binary data will be handled
@@ -166,17 +177,27 @@ class DocBuild
 
     public function createCallback($source, $url)
     {
-        //TODO
+        return $this->post('callback', [
+            'source' => $source,
+            'url' => $url,
+        ]);
     }
 
     public function combineDocument($name, array $source = [], $callback)
     {
-        //TODO
+        return $this->post('combine', [
+            'name' => $name,
+            'source' => $source,
+            'callback' => $callback,
+        ]);
     }
 
     public function convertToPdf($source, $callback)
     {
-        //TODO
+        return $this->post('pdf', [
+            'source' => $source,
+            'callback' => $callback,
+        ]);
     }
 
     public function getHttpAdapter()
@@ -184,4 +205,35 @@ class DocBuild
         return $this->http;
     }
 
+    /**
+     * @param $method
+     * @param $resource
+     * @param array $request
+     * @param array $headers
+     * @return array|mixed|string
+     */
+    protected function performRequest($method, $resource, array $request, array $headers)
+    {
+        if (!$this->auth->hasAccessToken()) {
+            $this->auth->authorize($this->clientId, $this->clientSecret);
+        }
+
+        try {
+            $request['access_token'] = $this->auth->getAccessToken();
+
+            return $this->http->$method($resource, $request, $headers);
+
+        } catch (TokenExpiredException $e) {
+
+            if ($this->options['token_refresh'] && $this->tokenRefreshes < $this->options['max_token_refresh']) {
+                $this->auth->authorize($this->clientId, $this->clientSecret);
+                $this->tokenRefreshes++;
+
+                return $this->$method($resource, $request, $headers);
+            } else {
+                $this->tokenRefreshes = 0;
+                throw $e;
+            }
+        }
+    }
 }

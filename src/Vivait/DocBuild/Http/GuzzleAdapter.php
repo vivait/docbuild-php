@@ -135,9 +135,6 @@ class GuzzleAdapter implements HttpAdapter
 
     public function getResponseContent()
     {
-        //TODO getBody() probably needs checking for null, as some responses may not return a body 204, whether guzzle handles
-        //this by not setting a body, I'm not sure.
-
         return (string) $this->response->getBody();
     }
 
