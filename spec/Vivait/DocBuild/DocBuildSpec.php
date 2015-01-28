@@ -5,6 +5,7 @@ namespace spec\Vivait\DocBuild;
 use PhpSpec\ObjectBehavior;
 use Prophecy\Argument;
 use Vivait\DocBuild\Auth\Auth;
+use Vivait\DocBuild\Exception\FileException;
 use Vivait\DocBuild\Http\HttpAdapter;
 
 class DocBuildSpec extends ObjectBehavior
@@ -39,7 +40,7 @@ class DocBuildSpec extends ObjectBehavior
     }
 
 
-    function it_can_get_a_list_of_documents(HttpAdapter $httpAdapter, Auth $auth)
+    function it_can_get_a_list_of_documents(HttpAdapter $httpAdapter)
     {
         $expected = [
             [
@@ -60,7 +61,7 @@ class DocBuildSpec extends ObjectBehavior
         $this->getDocuments()->shouldReturn($expected);
     }
 
-    function it_can_download_a_document(HttpAdapter $httpAdapter, Auth $auth)
+    function it_can_download_a_document(HttpAdapter $httpAdapter)
     {
         $id = 'a1ec0371-966d-11e4-baee-08002730eb8a';
 
@@ -77,7 +78,7 @@ class DocBuildSpec extends ObjectBehavior
         $this->getHttpAdapter()->getResponseHeaders()->shouldReturn($headers);
     }
 
-    function it_can_get_document_info(HttpAdapter $httpAdapter, Auth $auth)
+    function it_can_get_document_info(HttpAdapter $httpAdapter)
     {
         $id = 'a1ec0371-966d-11e4-baee-08002730eb8a';
 
@@ -92,9 +93,30 @@ class DocBuildSpec extends ObjectBehavior
         $this->getDocument($id)->shouldReturn($expected);
     }
 
-//    function it_can_create_a_document_with_a_payload(HttpAdapter $httpAdapter){}
-//
-    function it_can_create_a_document_without_a_payload(HttpAdapter $httpAdapter, Auth $auth)
+    function it_can_create_a_document_with_a_payload(HttpAdapter $httpAdapter)
+    {
+        $file = tempnam('/tmp', 'file');
+
+        $expected = [
+            "status" => 0,
+            "id" => "a1ec0371-966d-11e4-baee-08002730eb8a",
+            "name" => "Test Document 1",
+            "extension" => "docx",
+        ];
+
+        $request = [
+            'document[name]' => 'Test File 1',
+            'document[extension]' => 'docx',
+            'document[file]'=> new \SplFileObject($file),
+            'access_token' => 'myapitoken',
+        ];
+
+        $httpAdapter->post('documents', $request, [])->willReturn($expected);
+
+        $this->createDocument('Test File 1', 'docx', $file)->shouldReturn($expected);
+    }
+
+    function it_can_create_a_document_without_a_payload(HttpAdapter $httpAdapter)
     {
         $expected = [
             "status" => 0,
@@ -115,8 +137,39 @@ class DocBuildSpec extends ObjectBehavior
     }
 
 
-//    function it_can_upload_a_payload_to_an_existing_document(HttpAdapter $httpAdapter){}
-//
+    function it_can_upload_a_payload_to_an_existing_document(HttpAdapter $httpAdapter)
+    {
+        $file = tempnam('/tmp', 'file');
+
+        $fileObj = new \SplFileObject($file);
+
+        $expected = [];
+        $request = [
+            'document[file]' => $fileObj,
+            'access_token' => 'myapitoken',
+        ];
+
+        $httpAdapter->post('documents/a1ec0371-966d-11e4-baee-08002730eb8a/payload', $request, [])->willReturn($expected);
+
+        $this->shouldNotThrow(new FileException())->duringUploadDocument('a1ec0371-966d-11e4-baee-08002730eb8a', $file);
+
+        $this->uploadDocument('a1ec0371-966d-11e4-baee-08002730eb8a', $file)->shouldReturn($expected);
+    }
+
+    function it_throws_an_exception_if_invalid_file_probided(HttpAdapter $httpAdapter)
+    {
+        $file = 'notafile';
+        $this->shouldThrow(new FileException())->duringUploadDocument('a1ec0371-966d-11e4-baee-08002730eb8a', $file);
+        //TODO for other file upload operations
+    }
+
+    function it_wont_throw_exception_if_valid_file_probided(HttpAdapter $httpAdapter)
+    {
+        $file = tempnam('/tmp', 'file');
+        $this->shouldNotThrow(new FileException())->duringUploadDocument('a1ec0371-966d-11e4-baee-08002730eb8a', $file);
+        //TODO for other file upload operations
+    }
+
     function it_can_create_a_callback(HttpAdapter $httpAdapter)
     {
         $expected = [];

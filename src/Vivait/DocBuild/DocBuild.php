@@ -4,6 +4,7 @@ namespace Vivait\DocBuild;
 
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Vivait\DocBuild\Auth\Auth;
+use Vivait\DocBuild\Exception\FileException;
 use Vivait\DocBuild\Exception\TokenExpiredException;
 use Vivait\DocBuild\Http\GuzzleAdapter;
 use Vivait\DocBuild\Http\HttpAdapter;
@@ -127,25 +128,36 @@ class DocBuild
     /**
      * @param $name
      * @param $extension
-     * @param null $file
+     * @param null $path
      * @return array|mixed|string
      */
-    public function createDocument($name, $extension, $file = null)
+    public function createDocument($name, $extension, $path = null)
     {
-        //TODO handle file
-        return $this->post('documents', [
+        $request = [
             'document[name]' => $name,
             'document[extension]' => $extension
-        ]);
+        ];
+
+        if($path){
+            $file = $this->handleFile($path);
+            $request['document[file]'] = $file;
+        }
+
+        return $this->post('documents', $request);
     }
 
     /**
      * @param $id
-     * @param $file
+     * @param $path
+     * @return array|mixed|string
      */
-    public function uploadDocument($id, $file)
+    public function uploadDocument($id, $path)
     {
-        //TODO
+        $file = $this->handleFile($path);
+
+        return $this->post('documents/' . $id . '/payload', [
+            'document[file]' => $file
+        ]);
     }
 
     /**
@@ -234,6 +246,19 @@ class DocBuild
                 $this->tokenRefreshes = 0;
                 throw $e;
             }
+        }
+    }
+
+    /**
+     * @param $path
+     * @return \SplFileObject
+     */
+    protected function handleFile($path)
+    {
+        try {
+            return new \SplFileObject($path);
+        } catch (\RuntimeException $e) {
+            throw new FileException($e);
         }
     }
 }
