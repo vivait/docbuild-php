@@ -230,26 +230,25 @@ class DocBuildSpec extends ObjectBehavior
             ->shouldReturn($expected);
     }
 
-    function it_errors_with_invalid_credentials(HttpAdapter $httpAdapter)
+    function it_errors_with_invalid_credentials(HttpAdapter $httpAdapter, Cache $cache)
     {
         $this->setClientSecret('anincorrectsecret');
+        $cache->contains('accessToken')->willReturn(false);
 
-        $response = ["error" => "invalid_client", "error_description" =>"The client credentials are invalid"];
         $httpAdapter->get('oauth/token', [
             'client_id' => 'myid',
             'client_secret' => 'anincorrectsecret',
             'grant_type' => 'client_credentials'
-        ])->willThrow(new UnauthorizedException(json_encode($response)));
+        ])->willThrow(new UnauthorizedException());
 
         $httpAdapter->getResponseCode()->willReturn(401);
 
-        $this->shouldThrow(new UnauthorizedException(json_encode($response), 401))->duringAuthorize();
+        $this->shouldThrow(new UnauthorizedException())->duringGetDocuments();
     }
 
     function it_can_authorize_the_client(HttpAdapter $httpAdapter)
     {
-        $token = 'myapitoken1';
-        $response = ['access_token' => $token, 'expires_in' => 3600, 'token_type' => 'bearer', 'scope' => ''];
+        $response = ['access_token' => 'myapitoken', 'expires_in' => 3600, 'token_type' => 'bearer', 'scope' => ''];
         $httpAdapter->get('oauth/token', [
             'client_id' => 'myid',
             'client_secret' => 'mysecret',
@@ -258,7 +257,9 @@ class DocBuildSpec extends ObjectBehavior
 
         $httpAdapter->getResponseCode()->willReturn(200);
 
-        $this->authorize()->shouldEqual($token);
+        $httpAdapter->get('documents', ['access_token' => 'myapitoken',], [])->willReturn([]);
+
+        $this->getDocuments();
     }
 
     function it_clears_the_cache_if_exception(HttpAdapter $httpAdapter, Cache $cache)

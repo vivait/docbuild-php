@@ -59,11 +59,15 @@ class DocBuild
         $this->optionsResolver = new OptionsResolver();
         $this->setOptions($options);
 
-        if(!$this->http = $http){
+        if ($http) {
+            $this->http = $http;
+        } else {
             $this->http = new GuzzleAdapter();
         }
 
-        if(!$this->cache = $cache){
+        if ($cache) {
+            $this->cache = $cache;
+        } else {
             $this->cache = new FilesystemCache(__DIR__);
         }
 
@@ -140,7 +144,7 @@ class DocBuild
     /**
      * @return string
      */
-    public function authorize()
+    protected function authorize()
     {
         $response = $this->http->get(
             'oauth/token',
@@ -278,6 +282,4 @@ class DocBuild
     {
         $this->clientId = $clientId;
     }
-
-
 }

@@ -26,7 +26,26 @@ $docBuild->convertToPdf('documentid', 'http://mycallback.url/api');
 
 ```
 
-### Optional: Manually refresh access_token
+### Http Client
+The guzzle library is used to interact the API. However, you can use your own
+adapter implementing `Vivait\DocBuild\Http\HttpAdapter` and injecting it into
+the constructor:
+
+```php
+$docBuild = new DocBuild($clientId, $clientSecret, $options, new CustomHttpAdapter());
+```
+
+### Caching
+This library uses the `doctrine/cache` library to cache `access_token` between
+requestes. By default it will use the `Doctrine\Common\Cache\FilesystemCache`,
+but this can be changed by injecting a cache that implements
+`Doctrine\Common\Cache\Cache` into the constructor:
+
+```php
+$docBuild = new DocBuild($clientId, $clientSecret, $options, null, new ArrayCache());
+```
+
+### Manually refresh access_token
 By default, the client will automatically refresh your `access_token`. However,
 this behaviour can be changed by setting the following option, or passing this
 options array into the constructor on instantiation.
@@ -39,7 +58,6 @@ $docBuild->setOptions([
 try {
 	$docs = $docBuild->getDocuments();
 } catch (TokenExpiredException $e) {
-	$docBuild->getAuth()->authorize();
-	$docs = $docBuild->getDocuments();
+	//Have another go
 }
 ```
