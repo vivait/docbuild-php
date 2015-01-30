@@ -2,10 +2,11 @@
 
 namespace spec\Vivait\DocBuild;
 
+use Doctrine\Common\Cache\Cache;
 use PhpSpec\ObjectBehavior;
 use Prophecy\Argument;
-use Vivait\DocBuild\Auth\Auth;
 use Vivait\DocBuild\Exception\FileException;
+use Vivait\DocBuild\Exception\UnauthorizedException;
 use Vivait\DocBuild\Http\HttpAdapter;
 
 class DocBuildSpec extends ObjectBehavior
@@ -15,26 +16,31 @@ class DocBuildSpec extends ObjectBehavior
         $this->shouldHaveType('Vivait\DocBuild\DocBuild');
     }
 
-    function let(HttpAdapter $httpAdapter, Auth $auth)
+    function let(HttpAdapter $httpAdapter, Cache $cache)
     {
         $httpAdapter->setUrl('http://api.doc.build/')->shouldBeCalled();
 
-        $auth->hasAccessToken()->willReturn(true);
-        $auth->getAccessToken()->willReturn('myapitoken');
+        $cache->contains('accessToken')->willReturn(true);
+        $cache->fetch('accessToken')->willReturn('myapitoken');
 
-        $this->beConstructedWith('myid', 'mysecret', [], $httpAdapter, $auth);
+        $this->beConstructedWith('myid', 'mysecret', [], $httpAdapter, $cache);
     }
 
-    function it_authorizes_if_no_token_set(HttpAdapter $httpAdapter, Auth $auth)
+    function it_authorizes_if_no_token_set(HttpAdapter $httpAdapter, Cache $cache)
     {
-        $auth->hasAccessToken()->willReturn(false);
-        $auth->getAccessToken()->willReturn(null);
+        $cache->contains('accessToken')->willReturn(false);
 
-        /** @noinspection PhpVoidFunctionResultUsedInspection */
-        $auth->authorize('myid', 'mysecret')->shouldBeCalled();
+        $response = ['access_token' => 'newtoken', 'expires_in' => 3600, 'token_type' => 'bearer', 'scope' => ''];
+        $httpAdapter->get('oauth/token', [
+            'client_id' => 'myid',
+            'client_secret' => 'mysecret',
+            'grant_type' => 'client_credentials'
+        ])->willReturn($response);
 
-        $auth->getAccessToken()->willReturn('newaccesstoken');
-        $httpAdapter->get('documents', ['access_token' => 'newaccesstoken'], [])->shouldBeCalled();
+        $httpAdapter->getResponseCode()->willReturn(200);
+        $cache->save('accessToken', 'newtoken')->shouldBeCalled();
+
+        $httpAdapter->get('documents', ['access_token' => 'newtoken'], [])->shouldBeCalled();
 
         $this->getDocuments();
     }
@@ -207,7 +213,7 @@ class DocBuildSpec extends ObjectBehavior
     }
 
 
-    function it_can_convert_a_doc_to_pdf(HttpAdapter $httpAdapter)
+    function it_can_convert_a_doc_to_pdf(HttpAdapter $httpAdapter, Cache $cache)
     {
         $expected = [];
 
@@ -221,5 +227,36 @@ class DocBuildSpec extends ObjectBehavior
 
         $this->convertToPdf('a1ec0371-966d-11e4-baee-08002730eb8a', 'http://localhost/test/callback?id=a1ec0371-966d-11e4-baee-08002730eb8a')
             ->shouldReturn($expected);
+    }
+
+    function it_errors_with_invalid_credentials(HttpAdapter $httpAdapter)
+    {
+        $this->setClientSecret('anincorrectsecret');
+
+        $response = ["error" => "invalid_client", "error_description" =>"The client credentials are invalid"];
+        $httpAdapter->get('oauth/token', [
+            'client_id' => 'myid',
+            'client_secret' => 'anincorrectsecret',
+            'grant_type' => 'client_credentials'
+        ])->willThrow(new UnauthorizedException(json_encode($response)));
+
+        $httpAdapter->getResponseCode()->willReturn(401);
+
+        $this->shouldThrow(new UnauthorizedException(json_encode($response), 401))->duringAuthorize();
+    }
+
+    function it_can_authorize_the_client(HttpAdapter $httpAdapter)
+    {
+        $token = 'myapitoken1';
+        $response = ['access_token' => $token, 'expires_in' => 3600, 'token_type' => 'bearer', 'scope' => ''];
+        $httpAdapter->get('oauth/token', [
+            'client_id' => 'myid',
+            'client_secret' => 'mysecret',
+            'grant_type' => 'client_credentials'
+        ])->willReturn($response);
+
+        $httpAdapter->getResponseCode()->willReturn(200);
+
+        $this->authorize()->shouldEqual($token);
     }
 }

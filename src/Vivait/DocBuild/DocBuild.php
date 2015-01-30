@@ -2,9 +2,11 @@
 
 namespace Vivait\DocBuild;
 
+use Doctrine\Common\Cache\Cache;
+use Doctrine\Common\Cache\FilesystemCache;
 use Symfony\Component\OptionsResolver\OptionsResolver;
-use Vivait\DocBuild\Auth\Auth;
 use Vivait\DocBuild\Exception\FileException;
+use Vivait\DocBuild\Exception\HttpException;
 use Vivait\DocBuild\Exception\TokenExpiredException;
 use Vivait\DocBuild\Http\GuzzleAdapter;
 use Vivait\DocBuild\Http\HttpAdapter;
@@ -39,22 +41,21 @@ class DocBuild
     protected $options;
 
     /**
-     * @var Auth
+     * @var Cache
      */
-    protected $auth;
+    private $cache;
+
+    protected $accessToken;
 
     /**
      * @param null $clientId
      * @param null $clientSecret
      * @param array $options
      * @param HttpAdapter $http
-     * @param Auth $auth
+     * @param Cache $cache
      */
-    public function __construct($clientId = null, $clientSecret = null, array $options = [], HttpAdapter $http = null, Auth $auth = null)
+    public function __construct($clientId, $clientSecret, array $options = [], HttpAdapter $http = null, Cache $cache = null)
     {
-        $this->clientSecret = $clientSecret;
-        $this->clientId = $clientId;
-
         $this->optionsResolver = new OptionsResolver();
         $this->setOptions($options);
 
@@ -62,11 +63,14 @@ class DocBuild
             $this->http = new GuzzleAdapter();
         }
 
-        $this->http->setUrl(self::URL);
-
-        if(!$this->auth = $auth){
-            $this->auth = new Auth($this->http);
+        if(!$this->cache = $cache){
+            $this->cache = new FilesystemCache(__DIR__);
         }
+
+        $this->clientId = $clientId;
+        $this->clientSecret = $clientSecret;
+
+        $this->http->setUrl(self::URL);
     }
 
     public function setOptions(array $options = [])
@@ -80,22 +84,6 @@ class DocBuild
         $resolver->setDefaults([
             'token_refresh' => true,
         ]);
-    }
-
-    /**
-     * @param string $clientId
-     */
-    public function setClientId($clientId)
-    {
-        $this->clientId = $clientId;
-    }
-
-    /**
-     * @param string $clientSecret
-     */
-    public function setClientSecret($clientSecret)
-    {
-        $this->clientSecret = $clientSecret;
     }
 
     /**
@@ -124,19 +112,20 @@ class DocBuild
      */
     protected function performRequest($method, $resource, array $request, array $headers)
     {
-        if (!$this->auth->hasAccessToken()) {
-            $this->auth->authorize($this->clientId, $this->clientSecret);
+        if($this->cache && $this->cache->contains('accessToken')){
+            $accessToken = $this->cache->fetch('accessToken');
+        } else {
+            $accessToken = $this->authorize();
+            $this->cache->save('accessToken', $accessToken);
         }
 
         try {
-            $request['access_token'] = $this->auth->getAccessToken();
+            $request['access_token'] = $accessToken;
 
             return $this->http->$method($resource, $request, $headers);
 
         } catch (TokenExpiredException $e) {
             if ($this->options['token_refresh']) {
-                $this->auth->authorize($this->clientId, $this->clientSecret);
-
                 return $this->$method($resource, $request, $headers);
             } else {
                 throw $e;
@@ -144,10 +133,25 @@ class DocBuild
         }
     }
 
-    public function getAuth()
+    /**
+     * @return string
+     */
+    public function authorize()
     {
-        return $this->auth;
+        $response = $this->http->get(
+            'oauth/token',
+            ['client_id' => $this->clientId, 'client_secret' => $this->clientSecret, 'grant_type' => 'client_credentials']
+        );
+
+        $code = $this->http->getResponseCode();
+
+        if ($code == 200 && array_key_exists('access_token', $response)) {
+            return $response['access_token'];
+        } else {
+            throw new HttpException("No access token was provided in the response", $code);
+        }
     }
+
 
     /**
      * @param $name
@@ -254,4 +258,22 @@ class DocBuild
             throw new FileException($e);
         }
     }
+
+    /**
+     * @param string $clientSecret
+     */
+    public function setClientSecret($clientSecret)
+    {
+        $this->clientSecret = $clientSecret;
+    }
+
+    /**
+     * @param string $clientId
+     */
+    public function setClientId($clientId)
+    {
+        $this->clientId = $clientId;
+    }
+
+
 }
