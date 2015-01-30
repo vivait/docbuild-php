@@ -168,10 +168,10 @@ class DocBuild
     /**
      * @param $name
      * @param $extension
-     * @param null $path
+     * @param string $path
      * @return array|mixed|string
      */
-    public function createDocument($name, $extension, $path = null)
+    public function createDocument($name, $extension, $path = '')
     {
         $request = [
             'document[name]' => $name,
@@ -221,7 +221,7 @@ class DocBuild
      * @param $id
      * @return array
      */
-    public function downloadDocument($id)
+    public function downloadDocument($id, $newFile = null)
     {
         //TODO think about how binary data will be handled
         return $this->get('documents/' . $id . '/payload');
@@ -264,11 +264,7 @@ class DocBuild
      */
     protected function handleFile($path)
     {
-        try {
-            return new \SplFileObject($path);
-        } catch (\RuntimeException $e) {
-            throw new FileException($e);
-        }
+        return fopen($path, 'r');
     }
 
     /**
