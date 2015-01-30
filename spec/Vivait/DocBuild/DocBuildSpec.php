@@ -6,6 +6,7 @@ use Doctrine\Common\Cache\Cache;
 use PhpSpec\ObjectBehavior;
 use Prophecy\Argument;
 use Vivait\DocBuild\Exception\FileException;
+use Vivait\DocBuild\Exception\TokenExpiredException;
 use Vivait\DocBuild\Exception\UnauthorizedException;
 use Vivait\DocBuild\Http\HttpAdapter;
 
@@ -258,5 +259,20 @@ class DocBuildSpec extends ObjectBehavior
         $httpAdapter->getResponseCode()->willReturn(200);
 
         $this->authorize()->shouldEqual($token);
+    }
+
+    function it_clears_the_cache_if_exception(HttpAdapter $httpAdapter, Cache $cache)
+    {
+        $this->setOptions(['token_refresh' => false]);
+
+        $cache->contains('accessToken')->willReturn(true);
+        $cache->fetch('accessToken')->willReturn('expiredtoken');
+
+        $httpAdapter->get('documents', ['access_token' => 'expiredtoken'], [])
+            ->willThrow(new TokenExpiredException("The access token provided has expired."));
+
+        $cache->delete('accessToken')->shouldBeCalled();
+
+        $this->shouldThrow(new TokenExpiredException())->duringGetDocuments();
     }
 }

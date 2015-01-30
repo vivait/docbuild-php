@@ -8,6 +8,8 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 use Vivait\DocBuild\Exception\FileException;
 use Vivait\DocBuild\Exception\HttpException;
 use Vivait\DocBuild\Exception\TokenExpiredException;
+use Vivait\DocBuild\Exception\TokenInvalidException;
+use Vivait\DocBuild\Exception\UnauthorizedException;
 use Vivait\DocBuild\Http\GuzzleAdapter;
 use Vivait\DocBuild\Http\HttpAdapter;
 
@@ -44,8 +46,6 @@ class DocBuild
      * @var Cache
      */
     private $cache;
-
-    protected $accessToken;
 
     /**
      * @param null $clientId
@@ -112,7 +112,7 @@ class DocBuild
      */
     protected function performRequest($method, $resource, array $request, array $headers)
     {
-        if($this->cache && $this->cache->contains('accessToken')){
+        if ($this->cache && $this->cache->contains('accessToken')) {
             $accessToken = $this->cache->fetch('accessToken');
         } else {
             $accessToken = $this->authorize();
@@ -124,12 +124,16 @@ class DocBuild
 
             return $this->http->$method($resource, $request, $headers);
 
-        } catch (TokenExpiredException $e) {
-            if ($this->options['token_refresh']) {
-                return $this->$method($resource, $request, $headers);
-            } else {
-                throw $e;
+        } catch (UnauthorizedException $e) {
+            $this->cache->delete('accessToken');
+
+            if($e instanceof TokenExpiredException || $e instanceof TokenInvalidException){
+                if ($this->options['token_refresh']) {
+                    return $this->$method($resource, $request, $headers);
+                }
             }
+
+            throw $e;
         }
     }
 
