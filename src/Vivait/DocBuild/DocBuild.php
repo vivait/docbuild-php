@@ -68,7 +68,7 @@ class DocBuild
         if ($cache) {
             $this->cache = $cache;
         } else {
-            $this->cache = new FilesystemCache(__DIR__);
+            $this->cache = new FilesystemCache(sys_get_temp_dir());
         }
 
         $this->clientId = $clientId;
@@ -87,6 +87,7 @@ class DocBuild
     {
         $resolver->setDefaults([
             'token_refresh' => true,
+            'cache_key' => 'token',
         ]);
     }
 
@@ -116,11 +117,11 @@ class DocBuild
      */
     protected function performRequest($method, $resource, array $request, array $headers)
     {
-        if ($this->cache && $this->cache->contains('accessToken')) {
-            $accessToken = $this->cache->fetch('accessToken');
+        if ($this->cache && $this->cache->contains($this->options['cache_key'])) {
+            $accessToken = $this->cache->fetch($this->options['cache_key']);
         } else {
             $accessToken = $this->authorize();
-            $this->cache->save('accessToken', $accessToken);
+            $this->cache->save($this->options['cache_key'], $accessToken);
         }
 
         try {
@@ -129,9 +130,9 @@ class DocBuild
             return $this->http->$method($resource, $request, $headers);
 
         } catch (UnauthorizedException $e) {
-            $this->cache->delete('accessToken');
+            $this->cache->delete($this->options['cache_key']);
 
-            if($e instanceof TokenExpiredException || $e instanceof TokenInvalidException){
+            if ($e instanceof TokenExpiredException || $e instanceof TokenInvalidException) {
                 if ($this->options['token_refresh']) {
                     return $this->$method($resource, $request, $headers);
                 }
@@ -147,8 +148,11 @@ class DocBuild
     protected function authorize()
     {
         $response = $this->http->get(
-            'oauth/token',
-            ['client_id' => $this->clientId, 'client_secret' => $this->clientSecret, 'grant_type' => 'client_credentials']
+            'oauth/token', [
+                'client_id' => $this->clientId,
+                'client_secret' => $this->clientSecret,
+                'grant_type' => 'client_credentials'
+            ]
         );
 
         $code = $this->http->getResponseCode();
@@ -174,7 +178,7 @@ class DocBuild
             'document[extension]' => $extension
         ];
 
-        if($path){
+        if ($path) {
             $file = $this->handleFile($path);
             $request['document[file]'] = $file;
         }

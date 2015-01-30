@@ -21,15 +21,15 @@ class DocBuildSpec extends ObjectBehavior
     {
         $httpAdapter->setUrl('http://api.doc.build/')->shouldBeCalled();
 
-        $cache->contains('accessToken')->willReturn(true);
-        $cache->fetch('accessToken')->willReturn('myapitoken');
+        $cache->contains('token')->willReturn(true);
+        $cache->fetch('token')->willReturn('myapitoken');
 
         $this->beConstructedWith('myid', 'mysecret', [], $httpAdapter, $cache);
     }
 
     function it_authorizes_if_no_token_set(HttpAdapter $httpAdapter, Cache $cache)
     {
-        $cache->contains('accessToken')->willReturn(false);
+        $cache->contains('token')->willReturn(false);
 
         $response = ['access_token' => 'newtoken', 'expires_in' => 3600, 'token_type' => 'bearer', 'scope' => ''];
         $httpAdapter->get('oauth/token', [
@@ -39,7 +39,7 @@ class DocBuildSpec extends ObjectBehavior
         ])->willReturn($response);
 
         $httpAdapter->getResponseCode()->willReturn(200);
-        $cache->save('accessToken', 'newtoken')->shouldBeCalled();
+        $cache->save('token', 'newtoken')->shouldBeCalled();
 
         $httpAdapter->get('documents', ['access_token' => 'newtoken'], [])->shouldBeCalled();
 
@@ -233,7 +233,7 @@ class DocBuildSpec extends ObjectBehavior
     function it_errors_with_invalid_credentials(HttpAdapter $httpAdapter, Cache $cache)
     {
         $this->setClientSecret('anincorrectsecret');
-        $cache->contains('accessToken')->willReturn(false);
+        $cache->contains('token')->willReturn(false);
 
         $httpAdapter->get('oauth/token', [
             'client_id' => 'myid',
@@ -266,13 +266,13 @@ class DocBuildSpec extends ObjectBehavior
     {
         $this->setOptions(['token_refresh' => false]);
 
-        $cache->contains('accessToken')->willReturn(true);
-        $cache->fetch('accessToken')->willReturn('expiredtoken');
+        $cache->contains('token')->willReturn(true);
+        $cache->fetch('token')->willReturn('expiredtoken');
 
         $httpAdapter->get('documents', ['access_token' => 'expiredtoken'], [])
             ->willThrow(new TokenExpiredException("The access token provided has expired."));
 
-        $cache->delete('accessToken')->shouldBeCalled();
+        $cache->delete('token')->shouldBeCalled();
 
         $this->shouldThrow(new TokenExpiredException())->duringGetDocuments();
     }
