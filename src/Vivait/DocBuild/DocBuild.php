@@ -221,7 +221,7 @@ class DocBuild
      * @param $id
      * @return array
      */
-    public function downloadDocument($id, $newFilePath = null)
+    public function downloadDocument($id, $stream)
     {
         //TODO think about how binary data will be handled
         return $this->get('documents/' . $id . '/payload');
