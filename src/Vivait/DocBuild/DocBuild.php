@@ -219,12 +219,14 @@ class DocBuild
 
     /**
      * @param $id
-     * @return array
+     * @param $stream
+     * @return void
      */
     public function downloadDocument($id, $stream)
     {
-        //TODO think about how binary data will be handled
-        return $this->get('documents/' . $id . '/payload');
+        $documentContents = $this->get('documents/' . $id . '/payload');
+
+        fwrite($stream, $documentContents, strlen($documentContents));
     }
 
     public function createCallback($source, $url)
@@ -263,7 +265,7 @@ class DocBuild
      */
     protected function handleFileResource($stream)
     {
-        if(!is_resource($stream) && get_resource_type($stream) != 'stream'){
+        if (!is_resource($stream) && get_resource_type($stream) != 'stream') {
             throw new FileException();
         } else {
             return $stream;

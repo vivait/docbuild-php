@@ -3,7 +3,10 @@
 namespace spec\Vivait\DocBuild;
 
 use Doctrine\Common\Cache\Cache;
+use GuzzleHttp\Message\Response;
+use GuzzleHttp\Stream\Stream;
 use org\bovigo\vfs\vfsStream;
+use org\bovigo\vfs\vfsStreamContent;
 use org\bovigo\vfs\vfsStreamDirectory;
 use org\bovigo\vfs\vfsStreamWrapper;
 use PhpSpec\ObjectBehavior;
@@ -79,19 +82,21 @@ class DocBuildSpec extends ObjectBehavior
 
     function it_can_download_a_document(HttpAdapter $httpAdapter)
     {
+        $expected = "Test Document";
         $id = 'a1ec0371-966d-11e4-baee-08002730eb8a';
 
-        $httpAdapter->get('documents/' . $id . '/payload' , ['access_token' => 'myapitoken'], [])->shouldBeCalled();
+        $file = vfsStream::newFile('file');
+        $this->tempDir->addChild($file);
 
-        $headers = [
-            'Content-Disposition' => ['attachment'],
-            'filename' => ['TestDocument1.docx']
-        ];
+        $fileStream = fopen('vfs://path/file', 'w');
 
-        $httpAdapter->getResponseHeaders()->willReturn($headers);
+        $httpAdapter->get('documents/' . $id . '/payload' , ['access_token' => 'myapitoken'], [])->willReturn($expected);
 
-        $this->downloadDocument($id);
-        $this->getHttpAdapter()->getResponseHeaders()->shouldReturn($headers);
+        $this->downloadDocument($id, $fileStream);
+
+        if(($fileContents = $file->getContent()) != $expected) {
+            throw new \Exception("File steam contents of '" . $fileContents ."' does not equal expected '" . $expected . "'");
+        }
     }
 
     function it_can_get_document_info(HttpAdapter $httpAdapter)
