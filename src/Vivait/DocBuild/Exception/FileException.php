@@ -7,6 +7,6 @@ class FileException extends \RuntimeException
 {
     public function __construct(\Exception $previous = null)
     {
-        parent::__construct('The file you are trying to upload is invalid. Check its path.', null, $previous);
+        parent::__construct('Not a valid stream resource', null, $previous);
     }
 }

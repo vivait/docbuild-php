@@ -168,18 +168,18 @@ class DocBuild
     /**
      * @param $name
      * @param $extension
-     * @param string $path
+     * @param null $stream
      * @return array|mixed|string
      */
-    public function createDocument($name, $extension, $path = '')
+    public function createDocument($name, $extension, $stream = null)
     {
         $request = [
             'document[name]' => $name,
             'document[extension]' => $extension
         ];
 
-        if ($path) {
-            $file = $this->handleFile($path);
+        if ($stream) {
+            $file = $this->handleFileResource($stream);
             $request['document[file]'] = $file;
         }
 
@@ -188,12 +188,12 @@ class DocBuild
 
     /**
      * @param $id
-     * @param $path
+     * @param $stream
      * @return array|mixed|string
      */
-    public function uploadDocument($id, $path)
+    public function uploadDocument($id, $stream)
     {
-        $file = $this->handleFile($path);
+        $file = $this->handleFileResource($stream);
 
         return $this->post('documents/' . $id . '/payload', [
             'document[file]' => $file
@@ -221,7 +221,7 @@ class DocBuild
      * @param $id
      * @return array
      */
-    public function downloadDocument($id, $newFile = null)
+    public function downloadDocument($id, $newFilePath = null)
     {
         //TODO think about how binary data will be handled
         return $this->get('documents/' . $id . '/payload');
@@ -258,13 +258,16 @@ class DocBuild
     }
 
     /**
-     * @param $path
+     * @param $stream
      * @return \SplFileObject
-     * @throws FileException
      */
-    protected function handleFile($path)
+    protected function handleFileResource($stream)
     {
-        return fopen($path, 'r');
+        if(!is_resource($stream) && get_resource_type($stream) != 'stream'){
+            throw new FileException();
+        } else {
+            return $stream;
+        }
     }
 
     /**

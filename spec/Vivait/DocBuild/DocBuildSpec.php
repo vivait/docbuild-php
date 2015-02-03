@@ -3,15 +3,22 @@
 namespace spec\Vivait\DocBuild;
 
 use Doctrine\Common\Cache\Cache;
+use org\bovigo\vfs\vfsStream;
+use org\bovigo\vfs\vfsStreamDirectory;
+use org\bovigo\vfs\vfsStreamWrapper;
 use PhpSpec\ObjectBehavior;
 use Prophecy\Argument;
-use Vivait\DocBuild\Exception\FileException;
 use Vivait\DocBuild\Exception\TokenExpiredException;
 use Vivait\DocBuild\Exception\UnauthorizedException;
 use Vivait\DocBuild\Http\HttpAdapter;
 
 class DocBuildSpec extends ObjectBehavior
 {
+    /**
+     * @var vfsStreamDirectory
+     */
+    private $tempDir;
+
     function it_is_initializable()
     {
         $this->shouldHaveType('Vivait\DocBuild\DocBuild');
@@ -19,6 +26,8 @@ class DocBuildSpec extends ObjectBehavior
 
     function let(HttpAdapter $httpAdapter, Cache $cache)
     {
+        $this->tempDir = vfsStream::setup('path');
+
         $httpAdapter->setUrl('http://api.doc.build/')->shouldBeCalled();
 
         $cache->contains('token')->willReturn(true);
@@ -102,7 +111,11 @@ class DocBuildSpec extends ObjectBehavior
 
     function it_can_create_a_document_with_a_payload(HttpAdapter $httpAdapter)
     {
-        $file = tempnam('/tmp', 'file');
+        $file = vfsStream::newFile('file');
+        $file->setContent('somecontent');
+        $this->tempDir->addChild($file);
+
+        $file = fopen('vfs://path/file', 'r');
 
         $expected = [
             "status" => 0,
@@ -114,7 +127,7 @@ class DocBuildSpec extends ObjectBehavior
         $request = [
             'document[name]' => 'Test File 1',
             'document[extension]' => 'docx',
-            'document[file]'=> new \SplFileObject($file),
+            'document[file]'=> $file,
             'access_token' => 'myapitoken',
         ];
 
@@ -146,35 +159,21 @@ class DocBuildSpec extends ObjectBehavior
 
     function it_can_upload_a_payload_to_an_existing_document(HttpAdapter $httpAdapter)
     {
-        $file = tempnam('/tmp', 'file');
+        $file = vfsStream::newFile('file');
+        $file->setContent('somecontent');
+        $this->tempDir->addChild($file);
 
-        $fileObj = new \SplFileObject($file);
+        $file = fopen('vfs://path/file', 'r');
 
         $expected = [];
         $request = [
-            'document[file]' => $fileObj,
+            'document[file]' => $file,
             'access_token' => 'myapitoken',
         ];
 
         $httpAdapter->post('documents/a1ec0371-966d-11e4-baee-08002730eb8a/payload', $request, [])->willReturn($expected);
 
-        $this->shouldNotThrow(new FileException())->duringUploadDocument('a1ec0371-966d-11e4-baee-08002730eb8a', $file);
-
         $this->uploadDocument('a1ec0371-966d-11e4-baee-08002730eb8a', $file)->shouldReturn($expected);
-    }
-
-    function it_throws_an_exception_if_invalid_file_probided(HttpAdapter $httpAdapter)
-    {
-        $file = 'notafile';
-        $this->shouldThrow(new FileException())->duringUploadDocument('a1ec0371-966d-11e4-baee-08002730eb8a', $file);
-        //TODO for other file upload operations
-    }
-
-    function it_wont_throw_exception_if_valid_file_probided(HttpAdapter $httpAdapter)
-    {
-        $file = tempnam('/tmp', 'file');
-        $this->shouldNotThrow(new FileException())->duringUploadDocument('a1ec0371-966d-11e4-baee-08002730eb8a', $file);
-        //TODO for other file upload operations
     }
 
     function it_can_create_a_callback(HttpAdapter $httpAdapter)
