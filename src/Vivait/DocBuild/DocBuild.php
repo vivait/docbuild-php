@@ -15,8 +15,6 @@ use Vivait\DocBuild\Http\HttpAdapter;
 
 class DocBuild
 {
-    const URL = "http://api.doc.build/";
-
     /**
      * @var OptionsResolver
      */
@@ -74,7 +72,7 @@ class DocBuild
         $this->clientId = $clientId;
         $this->clientSecret = $clientSecret;
 
-        $this->http->setUrl(self::URL);
+        $this->http->setUrl($this->options['url']);
     }
 
     public function setOptions(array $options = [])
@@ -88,6 +86,7 @@ class DocBuild
         $resolver->setDefaults([
             'token_refresh' => true,
             'cache_key' => 'token',
+            'url' => 'http://transdoc.dev/api/',
         ]);
     }
 
@@ -117,7 +116,7 @@ class DocBuild
      */
     protected function performRequest($method, $resource, array $request, array $headers)
     {
-        if ($this->cache && $this->cache->contains($this->options['cache_key'])) {
+        if ($this->cache->contains($this->options['cache_key'])) {
             $accessToken = $this->cache->fetch($this->options['cache_key']);
         } else {
             $accessToken = $this->authorize();
@@ -145,7 +144,7 @@ class DocBuild
     /**
      * @return string
      */
-    protected function authorize()
+    public function authorize()
     {
         $response = $this->http->get(
             'oauth/token', [
