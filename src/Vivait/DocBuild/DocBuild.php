@@ -86,7 +86,7 @@ class DocBuild
         $resolver->setDefaults([
             'token_refresh' => true,
             'cache_key' => 'token',
-            'url' => 'http://transdoc.dev/api/',
+            'url' => 'http://api.doc.build/',
         ]);
     }
 
