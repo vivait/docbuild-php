@@ -234,6 +234,23 @@ class DocBuildSpec extends ObjectBehavior
             ->shouldReturn($expected);
     }
 
+    function it_can_mail_merge_a_document(HttpAdapter $httpAdapter, Cache $cache)
+    {
+        $expected = [];
+
+        $request = [
+            'source' => 'a1ec0371-966d-11e4-baee-08002730eb8a',
+            'fields' => ['firstName' => 'Milly', 'lastName' => 'Merged'],
+            'callback' => 'http://localhost/test/callback?id=a1ec0371-966d-11e4-baee-08002730eb8a',
+            'access_token' => 'myapitoken',
+        ];
+
+        $httpAdapter->post('mailmerge', $request, [])->willReturn($expected);
+
+        $this->mailMergeDocument('a1ec0371-966d-11e4-baee-08002730eb8a', ['firstName' => 'Milly', 'lastName' => 'Merged'], 'http://localhost/test/callback?id=a1ec0371-966d-11e4-baee-08002730eb8a')
+            ->shouldReturn($expected);
+    }
+
     function it_errors_with_invalid_credentials(HttpAdapter $httpAdapter, Cache $cache)
     {
         $this->setClientSecret('anincorrectsecret');

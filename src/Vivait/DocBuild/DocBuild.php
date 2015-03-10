@@ -253,6 +253,15 @@ class DocBuild
         ]);
     }
 
+    public function mailMergeDocument($source, Array $fields, $callback)
+    {
+        return $this->post('mailmerge', [
+            'source' => $source,
+            'fields' => $fields,
+            'callback' => $callback,
+        ]);
+    }
+
     public function getHttpAdapter()
     {
         return $this->http;
