@@ -56,10 +56,10 @@ class GuzzleAdapter implements HttpAdapter
      * @param $method
      * @param $resource
      * @param $options
-     * @param bool $json
+     * @param int $returnType
      * @return array|string
      */
-    private function sendRequest($method, $resource, $options, $json = true)
+    private function sendRequest($method, $resource, $options, $returnType = self::RETURN_TYPE_JSON)
     {
         $this->response = null;
 
@@ -87,31 +87,36 @@ class GuzzleAdapter implements HttpAdapter
             throw new AdapterException($e->getMessage());
         }
 
-        if($json){
-            return json_decode($this->getResponseContent(), true);
-        }
+        switch($returnType) {
+            case self::RETURN_TYPE_STRING:
+                return $this->getResponseContent();
 
-        return $this->getResponseContent();
+            case self::RETURN_TYPE_JSON:
+                return json_decode($this->getResponseContent(), true);
+
+            case self::RETURN_TYPE_STREAM:
+                return $this->response->getBody()->detach();
+        }
     }
 
-    public function get($resource, $request = [], $headers = [], $json = true)
+    public function get($resource, $request = [], $headers = [], $returnType = self::RETURN_TYPE_JSON)
     {
         $options = [
             'query' => $request,
             'headers' => $headers,
         ];
 
-        return $this->sendRequest('get', $resource, $options, $json);
+        return $this->sendRequest('get', $resource, $options, $returnType);
     }
 
-    public function post($resource, $request = [], $headers = [], $json = true)
+    public function post($resource, $request = [], $headers = [], $returnType = self::RETURN_TYPE_JSON)
     {
         $options = [
             'body' => $request,
             'headers' => $headers,
         ];
 
-        return $this->sendRequest('post', $resource, $options, $json);
+        return $this->sendRequest('post', $resource, $options, $returnType);
     }
 
     public function getResponseCode()

@@ -8,6 +8,10 @@ interface HttpAdapter
     const TOKEN_EXPIRED = 'The access token provided has expired.';
     const TOKEN_INVALID = 'The access token provided is invalid.';
 
+    const RETURN_TYPE_STRING = 10;
+    const RETURN_TYPE_JSON = 11;
+    const RETURN_TYPE_STREAM = 12;
+
     /**
      * @param $url
      * @return self
@@ -18,19 +22,21 @@ interface HttpAdapter
      * @param $resource
      * @param array $request
      * @param array $headers
-     * @param bool $json
-     * @return array|string
+     * @param int $returnType
+     * @return array|mixed|string|resource
+     * @internal param bool $json
      */
-    public function get($resource, $request = [], $headers = [], $json = true);
+    public function get($resource, $request = [], $headers = [], $returnType = self::RETURN_TYPE_JSON);
 
     /**
      * @param $resource
      * @param array $request
      * @param array $headers
-     * @param bool $json
-     * @return array|string
+     * @param int $returnType
+     * @return array|mixed|string|resource
+     * @internal param bool $json
      */
-    public function post($resource, $request = [], $headers = [], $json = true);
+    public function post($resource, $request = [], $headers = [], $returnType = self::RETURN_TYPE_JSON);
 
     /**
      * @return int
