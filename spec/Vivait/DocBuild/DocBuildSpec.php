@@ -44,16 +44,21 @@ class DocBuildSpec extends ObjectBehavior
         $cache->contains('token')->willReturn(false);
 
         $response = ['access_token' => 'newtoken', 'expires_in' => 3600, 'token_type' => 'bearer', 'scope' => ''];
-        $httpAdapter->get('oauth/token', [
-            'client_id' => 'myid',
-            'client_secret' => 'mysecret',
-            'grant_type' => 'client_credentials'
-        ])->willReturn($response);
+        $httpAdapter->get(
+            'oauth/token',
+            [
+                'client_id' => 'myid',
+                'client_secret' => 'mysecret',
+                'grant_type' => 'client_credentials'
+            ],
+            [],
+            HttpAdapter::RETURN_TYPE_JSON
+        )->willReturn($response);
 
         $httpAdapter->getResponseCode()->willReturn(200);
         $cache->save('token', 'newtoken')->shouldBeCalled();
 
-        $httpAdapter->get('documents', ['access_token' => 'newtoken'], [])->shouldBeCalled();
+        $httpAdapter->get('documents', ['access_token' => 'newtoken'], [], HttpAdapter::RETURN_TYPE_JSON)->shouldBeCalled();
 
         $this->getDocuments();
     }
@@ -76,7 +81,7 @@ class DocBuildSpec extends ObjectBehavior
             ],
         ];
 
-        $httpAdapter->get('documents', ['access_token' => 'myapitoken'], [])->willReturn($expected);
+        $httpAdapter->get('documents', ['access_token' => 'myapitoken'], [], HttpAdapter::RETURN_TYPE_JSON)->willReturn($expected);
         $this->getDocuments()->shouldReturn($expected);
     }
 
@@ -88,9 +93,16 @@ class DocBuildSpec extends ObjectBehavior
         $file = vfsStream::newFile('file');
         $this->tempDir->addChild($file);
 
-        $fileStream = fopen('vfs://path/file', 'w');
+        $expectedFile = vfsStream::newFile('expected_file');
+        $this->tempDir->addChild($expectedFile);
 
-        $httpAdapter->get('documents/' . $id . '/payload' , ['access_token' => 'myapitoken'], [])->willReturn($expected);
+        $expectedStream = fopen('vfs://path/expected_file', 'w+');
+        fwrite($expectedStream, $expected, strlen($expected));
+        fseek($expectedStream, 0);
+
+        $fileStream = fopen('vfs://path/file', 'w+');
+
+        $httpAdapter->get('documents/' . $id . '/payload' , ['access_token' => 'myapitoken'], [], HttpAdapter::RETURN_TYPE_STREAM)->willReturn($expectedStream);
 
         $this->downloadDocument($id, $fileStream);
 
@@ -110,7 +122,7 @@ class DocBuildSpec extends ObjectBehavior
             'extension' => 'docx',
         ];
 
-        $httpAdapter->get('documents/' . $id, ['access_token' => 'myapitoken'], [])->willReturn($expected);
+        $httpAdapter->get('documents/' . $id, ['access_token' => 'myapitoken'], [], HttpAdapter::RETURN_TYPE_JSON)->willReturn($expected);
         $this->getDocument($id)->shouldReturn($expected);
     }
 
@@ -136,7 +148,7 @@ class DocBuildSpec extends ObjectBehavior
             'access_token' => 'myapitoken',
         ];
 
-        $httpAdapter->post('documents', $request, [])->willReturn($expected);
+        $httpAdapter->post('documents', $request, [], HttpAdapter::RETURN_TYPE_JSON)->willReturn($expected);
 
         $this->createDocument('Test File 1', 'docx', $file)->shouldReturn($expected);
     }
@@ -156,7 +168,7 @@ class DocBuildSpec extends ObjectBehavior
             'access_token' => 'myapitoken',
         ];
 
-        $httpAdapter->post('documents', $request, [])->willReturn($expected);
+        $httpAdapter->post('documents', $request, [], HttpAdapter::RETURN_TYPE_JSON)->willReturn($expected);
 
         $this->createDocument('Test File 1', 'docx', null)->shouldReturn($expected);
     }
@@ -176,7 +188,7 @@ class DocBuildSpec extends ObjectBehavior
             'access_token' => 'myapitoken',
         ];
 
-        $httpAdapter->post('documents/a1ec0371-966d-11e4-baee-08002730eb8a/payload', $request, [])->willReturn($expected);
+        $httpAdapter->post('documents/a1ec0371-966d-11e4-baee-08002730eb8a/payload', $request, [], HttpAdapter::RETURN_TYPE_JSON)->willReturn($expected);
 
         $this->uploadDocument('a1ec0371-966d-11e4-baee-08002730eb8a', $file)->shouldReturn($expected);
     }
@@ -191,7 +203,7 @@ class DocBuildSpec extends ObjectBehavior
             'access_token' => 'myapitoken',
         ];
 
-        $httpAdapter->post('callback', $request, [])->willReturn($expected);
+        $httpAdapter->post('callback', $request, [], HttpAdapter::RETURN_TYPE_JSON)->willReturn($expected);
 
         $this->createCallback('a1ec0371-966d-11e4-baee-08002730eb8a', 'http://localhost/test/callback?id=a1ec0371-966d-11e4-baee-08002730eb8a', null)
             ->shouldReturn($expected);
@@ -211,7 +223,7 @@ class DocBuildSpec extends ObjectBehavior
             'access_token' => 'myapitoken',
         ];
 
-        $httpAdapter->post('combine', $request, [])->willReturn($expected);
+        $httpAdapter->post('combine', $request, [], HttpAdapter::RETURN_TYPE_JSON)->willReturn($expected);
 
         $this->combineDocument('Combined Document 2', ["a1ec0371-966d-11e4-baee-08002730eb8a", "a1ec0371-966d-11e4-baee-08002730eb8b"] , 'http://localhost/test/callback?id=a1ec0371-966d-11e4-baee-08002730eb8a')
             ->shouldReturn($expected);
@@ -228,7 +240,7 @@ class DocBuildSpec extends ObjectBehavior
             'access_token' => 'myapitoken',
         ];
 
-        $httpAdapter->post('pdf', $request, [])->willReturn($expected);
+        $httpAdapter->post('pdf', $request, [], HttpAdapter::RETURN_TYPE_JSON)->willReturn($expected);
 
         $this->convertToPdf('a1ec0371-966d-11e4-baee-08002730eb8a', 'http://localhost/test/callback?id=a1ec0371-966d-11e4-baee-08002730eb8a')
             ->shouldReturn($expected);
@@ -245,7 +257,7 @@ class DocBuildSpec extends ObjectBehavior
             'access_token' => 'myapitoken',
         ];
 
-        $httpAdapter->post('mailmerge', $request, [])->willReturn($expected);
+        $httpAdapter->post('mailmerge', $request, [], HttpAdapter::RETURN_TYPE_JSON)->willReturn($expected);
 
         $this->mailMergeDocument('a1ec0371-966d-11e4-baee-08002730eb8a', ['firstName' => 'Milly', 'lastName' => 'Merged'], 'http://localhost/test/callback?id=a1ec0371-966d-11e4-baee-08002730eb8a')
             ->shouldReturn($expected);
@@ -256,11 +268,16 @@ class DocBuildSpec extends ObjectBehavior
         $this->setClientSecret('anincorrectsecret');
         $cache->contains('token')->willReturn(false);
 
-        $httpAdapter->get('oauth/token', [
-            'client_id' => 'myid',
-            'client_secret' => 'anincorrectsecret',
-            'grant_type' => 'client_credentials'
-        ])->willThrow(new UnauthorizedException());
+        $httpAdapter->get(
+            'oauth/token',
+            [
+                'client_id' => 'myid',
+                'client_secret' => 'anincorrectsecret',
+                'grant_type' => 'client_credentials'
+            ],
+            [],
+            HttpAdapter::RETURN_TYPE_JSON
+        )->willThrow(new UnauthorizedException());
 
         $httpAdapter->getResponseCode()->willReturn(401);
 
@@ -270,15 +287,20 @@ class DocBuildSpec extends ObjectBehavior
     function it_can_authorize_the_client(HttpAdapter $httpAdapter)
     {
         $response = ['access_token' => 'myapitoken', 'expires_in' => 3600, 'token_type' => 'bearer', 'scope' => ''];
-        $httpAdapter->get('oauth/token', [
-            'client_id' => 'myid',
-            'client_secret' => 'mysecret',
-            'grant_type' => 'client_credentials'
-        ])->willReturn($response);
+        $httpAdapter->get(
+            'oauth/token',
+            [
+                'client_id' => 'myid',
+                'client_secret' => 'mysecret',
+                'grant_type' => 'client_credentials'
+            ],
+            [],
+            HttpAdapter::RETURN_TYPE_JSON
+        )->willReturn($response);
 
         $httpAdapter->getResponseCode()->willReturn(200);
 
-        $httpAdapter->get('documents', ['access_token' => 'myapitoken',], [])->willReturn([]);
+        $httpAdapter->get('documents', ['access_token' => 'myapitoken',], [], HttpAdapter::RETURN_TYPE_JSON)->willReturn([]);
 
         $this->getDocuments();
     }
@@ -290,7 +312,7 @@ class DocBuildSpec extends ObjectBehavior
         $cache->contains('token')->willReturn(true);
         $cache->fetch('token')->willReturn('expiredtoken');
 
-        $httpAdapter->get('documents', ['access_token' => 'expiredtoken'], [])
+        $httpAdapter->get('documents', ['access_token' => 'expiredtoken'], [], HttpAdapter::RETURN_TYPE_JSON)
             ->willThrow(new TokenExpiredException("The access token provided has expired."));
 
         $cache->delete('token')->shouldBeCalled();

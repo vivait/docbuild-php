@@ -94,16 +94,24 @@ class DocBuild
      * @param $resource
      * @param array $request
      * @param array $headers
-     * @return array
+     * @param int $returnType
+     * @return array|mixed|string|resource
      */
-    protected function get($resource, array $request = [], array $headers = [])
+    protected function get($resource, array $request = [], array $headers = [], $returnType = HttpAdapter::RETURN_TYPE_JSON)
     {
-        return $this->performRequest('get', $resource, $request, $headers);
+        return $this->performRequest('get', $resource, $request, $headers, $returnType);
     }
 
-    protected function post($resource, array $request = [], array $headers = [])
+    /**
+     * @param $resource
+     * @param array $request
+     * @param array $headers
+     * @param int $returnType
+     * @return array|mixed|string|resource
+     */
+    protected function post($resource, array $request = [], array $headers = [], $returnType = HttpAdapter::RETURN_TYPE_JSON)
     {
-        return $this->performRequest('post', $resource, $request, $headers);
+        return $this->performRequest('post', $resource, $request, $headers, $returnType);
     }
 
     /**
@@ -111,10 +119,10 @@ class DocBuild
      * @param $resource
      * @param array $request
      * @param array $headers
-     * @return array|mixed|string
-     * @throws TokenExpiredException
+     * @param int $returnType
+     * @return array|mixed|string|resource
      */
-    protected function performRequest($method, $resource, array $request, array $headers)
+    protected function performRequest($method, $resource, array $request, array $headers, $returnType = HttpAdapter::RETURN_TYPE_JSON)
     {
         if ($this->cache->contains($this->options['cache_key'])) {
             $accessToken = $this->cache->fetch($this->options['cache_key']);
@@ -126,14 +134,14 @@ class DocBuild
         try {
             $request['access_token'] = $accessToken;
 
-            return $this->http->$method($resource, $request, $headers);
+            return $this->http->$method($resource, $request, $headers, $returnType);
 
         } catch (UnauthorizedException $e) {
             $this->cache->delete($this->options['cache_key']);
 
             if ($e instanceof TokenExpiredException || $e instanceof TokenInvalidException) {
                 if ($this->options['token_refresh']) {
-                    return $this->$method($resource, $request, $headers);
+                    return $this->$method($resource, $request, $headers, $returnType);
                 }
             }
 
@@ -151,7 +159,9 @@ class DocBuild
                 'client_id' => $this->clientId,
                 'client_secret' => $this->clientSecret,
                 'grant_type' => 'client_credentials'
-            ]
+            ],
+            [],
+            HttpAdapter::RETURN_TYPE_JSON
         );
 
         $code = $this->http->getResponseCode();
@@ -223,9 +233,9 @@ class DocBuild
      */
     public function downloadDocument($id, $stream)
     {
-        $documentContents = $this->get('documents/' . $id . '/payload');
+        $documentContents = $this->get('documents/' . $id . '/payload', [], [], HttpAdapter::RETURN_TYPE_STREAM);
 
-        fwrite($stream, $documentContents, strlen($documentContents));
+        stream_copy_to_stream($documentContents, $stream);
     }
 
     public function createCallback($source, $url)
