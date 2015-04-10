@@ -24,7 +24,6 @@ interface HttpAdapter
      * @param array $headers
      * @param int $returnType
      * @return array|mixed|string|resource
-     * @internal param bool $json
      */
     public function get($resource, $request = [], $headers = [], $returnType = self::RETURN_TYPE_JSON);
 
@@ -34,7 +33,6 @@ interface HttpAdapter
      * @param array $headers
      * @param int $returnType
      * @return array|mixed|string|resource
-     * @internal param bool $json
      */
     public function post($resource, $request = [], $headers = [], $returnType = self::RETURN_TYPE_JSON);
 
