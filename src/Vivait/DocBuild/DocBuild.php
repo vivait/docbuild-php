@@ -250,7 +250,7 @@ class DocBuild
         ]);
     }
 
-    public function combineDocument($name, array $source = [], $callback)
+    public function combineDocument($name, array $source, $callback = null)
     {
         return $this->post('combine', [
             'name' => $name,
@@ -259,7 +259,7 @@ class DocBuild
         ]);
     }
 
-    public function convertToPdf($source, $callback)
+    public function convertToPdf($source, $callback = null)
     {
         return $this->post('pdf', [
             'source' => $source,
@@ -267,7 +267,7 @@ class DocBuild
         ]);
     }
 
-    public function mailMergeDocument($source, Array $fields, $callback)
+    public function mailMergeDocument($source, Array $fields, $callback = null)
     {
         return $this->post('mailmerge', [
             'source' => $source,
