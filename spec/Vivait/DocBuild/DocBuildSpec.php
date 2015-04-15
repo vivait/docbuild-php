@@ -45,7 +45,7 @@ class DocBuildSpec extends ObjectBehavior
         $cache->contains('token')->willReturn(false);
 
         $response = ['access_token' => 'newtoken', 'expires_in' => 3600, 'token_type' => 'bearer', 'scope' => ''];
-        $httpAdapter->get(
+        $httpAdapter->post(
             'oauth/token',
             [
                 'client_id' => 'myid',
@@ -269,7 +269,7 @@ class DocBuildSpec extends ObjectBehavior
         $this->setClientSecret('anincorrectsecret');
         $cache->contains('token')->willReturn(false);
 
-        $httpAdapter->get(
+        $httpAdapter->post(
             'oauth/token',
             [
                 'client_id' => 'myid',
@@ -288,7 +288,7 @@ class DocBuildSpec extends ObjectBehavior
     function it_can_authorize_the_client(HttpAdapter $httpAdapter)
     {
         $response = ['access_token' => 'myapitoken', 'expires_in' => 3600, 'token_type' => 'bearer', 'scope' => ''];
-        $httpAdapter->get(
+        $httpAdapter->post(
             'oauth/token',
             [
                 'client_id' => 'myid',
