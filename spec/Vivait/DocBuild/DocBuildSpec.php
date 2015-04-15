@@ -11,6 +11,7 @@ use org\bovigo\vfs\vfsStreamDirectory;
 use org\bovigo\vfs\vfsStreamWrapper;
 use PhpSpec\ObjectBehavior;
 use Prophecy\Argument;
+use Vivait\DocBuild\Exception\CacheException;
 use Vivait\DocBuild\Exception\TokenExpiredException;
 use Vivait\DocBuild\Exception\UnauthorizedException;
 use Vivait\DocBuild\Http\HttpAdapter;
@@ -315,8 +316,23 @@ class DocBuildSpec extends ObjectBehavior
         $httpAdapter->get('documents', ['access_token' => 'expiredtoken'], [], HttpAdapter::RETURN_TYPE_JSON)
             ->willThrow(new TokenExpiredException("The access token provided has expired."));
 
-        $cache->delete('token')->shouldBeCalled();
+        $cache->delete('token')->willReturn(true);
 
         $this->shouldThrow(new TokenExpiredException())->duringGetDocuments();
+    }
+
+    function it_throws_exception_if_cache_cant_be_cleared(HttpAdapter $httpAdapter, Cache $cache)
+    {
+        $this->setOptions(['token_refresh' => false]);
+
+        $cache->contains('token')->willReturn(true);
+        $cache->fetch('token')->willReturn('expiredtoken');
+
+        $httpAdapter->get('documents', ['access_token' => 'expiredtoken'], [], HttpAdapter::RETURN_TYPE_JSON)
+            ->willThrow(new TokenExpiredException("The access token provided has expired."));
+
+        $cache->delete('token')->willReturn(false);
+
+        $this->shouldThrow(new CacheException('Could not delete the key in the cache. Do you have permission?'))->duringGetDocuments();
     }
 }

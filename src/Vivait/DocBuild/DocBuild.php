@@ -5,6 +5,7 @@ namespace Vivait\DocBuild;
 use Doctrine\Common\Cache\Cache;
 use Doctrine\Common\Cache\FilesystemCache;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Vivait\DocBuild\Exception\CacheException;
 use Vivait\DocBuild\Exception\FileException;
 use Vivait\DocBuild\Exception\HttpException;
 use Vivait\DocBuild\Exception\TokenExpiredException;
@@ -137,7 +138,10 @@ class DocBuild
             return $this->http->$method($resource, $request, $headers, $returnType);
 
         } catch (UnauthorizedException $e) {
-            $this->cache->delete($this->options['cache_key']);
+
+            if(!$this->cache->delete($this->options['cache_key'])){
+                throw new CacheException('Could not delete the key in the cache. Do you have permission?');
+            }
 
             if ($e instanceof TokenExpiredException || $e instanceof TokenInvalidException) {
                 if ($this->options['token_refresh']) {
