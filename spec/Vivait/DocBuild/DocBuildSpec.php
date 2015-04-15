@@ -230,6 +230,26 @@ class DocBuildSpec extends ObjectBehavior
             ->shouldReturn($expected);
     }
 
+    function it_can_combine_a_document_without_a_callback(HttpAdapter $httpAdapter)
+    {
+        $expected = [];
+
+        $request = [
+            'name' => 'Combined Document 2',
+            'source' => [
+                'a1ec0371-966d-11e4-baee-08002730eb8a',
+                'a1ec0371-966d-11e4-baee-08002730eb8b',
+            ],
+            'callback' => null,
+            'access_token' => 'myapitoken',
+        ];
+
+        $httpAdapter->post('combine', $request, [], HttpAdapter::RETURN_TYPE_JSON)->willReturn($expected);
+
+        $this->combineDocument('Combined Document 2', ["a1ec0371-966d-11e4-baee-08002730eb8a", "a1ec0371-966d-11e4-baee-08002730eb8b"])
+            ->shouldReturn($expected);
+    }
+
 
     function it_can_convert_a_doc_to_pdf(HttpAdapter $httpAdapter, Cache $cache)
     {
