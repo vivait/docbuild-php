@@ -154,7 +154,7 @@ class DocBuild
      */
     public function authorize()
     {
-        $response = $this->http->get(
+        $response = $this->http->post(
             'oauth/token', [
                 'client_id' => $this->clientId,
                 'client_secret' => $this->clientSecret,
