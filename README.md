@@ -1,4 +1,4 @@
-# Doc.Build
+# Doc.Build [![Build Status](https://travis-ci.org/vivait/docbuild-php.svg)](https://travis-ci.org/vivait/docbuild-php)
 
 ## Installation
 
