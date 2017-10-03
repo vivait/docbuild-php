@@ -310,8 +310,6 @@ class DocBuild
         $this->clientId = $clientId;
     }
     
-    
-
     /**
      * @param string $source
      * @param array  $emailAddresses
