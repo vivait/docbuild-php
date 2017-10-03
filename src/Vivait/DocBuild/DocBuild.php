@@ -309,4 +309,40 @@ class DocBuild
     {
         $this->clientId = $clientId;
     }
+    
+    
+
+    /**
+     * @param string $source
+     * @param array  $emailAddresses
+     * @param string $apiUrl
+     * @param string $adobeClientId
+     * @param string $adobeClientSecret
+     * @param string $adobeRefreshToken
+     * @param null   $callback
+     *
+     * @return array|mixed|resource|string
+     */
+    public function adobeSign(
+        $source,
+        array $emailAddresses,
+        $apiUrl,
+        $adobeClientId,
+        $adobeClientSecret,
+        $adobeRefreshToken,
+        $callback = null
+    ) {
+        return $this->post(
+            'adobe-sign',
+            [
+                'source'         => $source,
+                'emailAddresses' => $emailAddresses,
+                'apiUrl'         => $apiUrl,
+                'callback'       => $callback,
+                'clientId'       => $adobeClientId,
+                'clientSecret'   => $adobeClientSecret,
+                'refreshToken'   => $adobeRefreshToken
+            ]
+        );
+    }
 }
