@@ -339,7 +339,7 @@ class DocBuild
                 'callback'       => $callback,
                 'clientId'       => $adobeClientId,
                 'clientSecret'   => $adobeClientSecret,
-                'refreshToken'   => $adobeRefreshToken
+                'token'          => $adobeRefreshToken
             ]
         );
     }
