@@ -311,13 +311,13 @@ class DocBuild
     }
     
     /**
-     * @param string $source
-     * @param array  $emailAddresses
-     * @param string $apiUrl
-     * @param string $adobeClientId
-     * @param string $adobeClientSecret
-     * @param string $adobeRefreshToken
-     * @param null   $callback
+     * @param string      $source
+     * @param array       $emailAddresses
+     * @param string      $apiUrl
+     * @param string      $adobeClientId
+     * @param string      $adobeClientSecret
+     * @param string      $adobeRefreshToken
+     * @param null|string $callback
      *
      * @return array|mixed|resource|string
      */
