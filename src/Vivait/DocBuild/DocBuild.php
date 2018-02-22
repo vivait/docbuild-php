@@ -87,7 +87,7 @@ class DocBuild
         $resolver->setDefaults([
             'token_refresh' => true,
             'cache_key' => 'token',
-            'url' => 'http://api.doc.build/',
+            'url' => 'http://api.docbuild.vivait.co.uk/',
         ]);
     }
 

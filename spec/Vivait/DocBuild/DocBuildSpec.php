@@ -32,7 +32,7 @@ class DocBuildSpec extends ObjectBehavior
     {
         $this->tempDir = vfsStream::setup('path');
 
-        $httpAdapter->setUrl('http://api.doc.build/')->shouldBeCalled();
+        $httpAdapter->setUrl('http://api.docbuild.vivait.co.uk/')->shouldBeCalled();
 
         $cache->contains('token')->willReturn(true);
         $cache->fetch('token')->willReturn('myapitoken');
