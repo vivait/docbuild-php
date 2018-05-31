@@ -267,7 +267,7 @@ class DocBuildSpec extends ObjectBehavior
             ->shouldReturn($expected);
     }
 
-    function it_can_mail_merge_a_document(HttpAdapter $httpAdapter, Cache $cache)
+    function it_can_mail_merge_a_document(HttpAdapter $httpAdapter)
     {
         $expected = [];
 
@@ -281,6 +281,23 @@ class DocBuildSpec extends ObjectBehavior
         $httpAdapter->post('mailmerge', $request, [], HttpAdapter::RETURN_TYPE_JSON)->willReturn($expected);
 
         $this->mailMergeDocument('a1ec0371-966d-11e4-baee-08002730eb8a', ['firstName' => 'Milly', 'lastName' => 'Merged'], 'http://localhost/test/callback?id=a1ec0371-966d-11e4-baee-08002730eb8a')
+            ->shouldReturn($expected);
+    }
+
+    function it_can_mail_merge_a_v2_document(HttpAdapter $httpAdapter)
+    {
+        $expected = [];
+
+        $request = [
+            'source' => 'a1ec0371-966d-11e4-baee-08002730eb8a',
+            'fields' => ['firstName' => 'Milly', 'lastName' => 'Merged'],
+            'callback' => 'http://localhost/test/callback?id=a1ec0371-966d-11e4-baee-08002730eb8a',
+            'access_token' => 'myapitoken',
+        ];
+
+        $httpAdapter->post('v2/mailmerge', $request, [], HttpAdapter::RETURN_TYPE_JSON)->willReturn($expected);
+
+        $this->v2MailMergeDocument('a1ec0371-966d-11e4-baee-08002730eb8a', ['firstName' => 'Milly', 'lastName' => 'Merged'], 'http://localhost/test/callback?id=a1ec0371-966d-11e4-baee-08002730eb8a')
             ->shouldReturn($expected);
     }
 
