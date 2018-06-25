@@ -318,7 +318,7 @@ class DocBuild
     {
         $this->clientId = $clientId;
     }
-    
+
     /**
      * @param string      $source
      * @param array       $emailAddresses
@@ -349,6 +349,91 @@ class DocBuild
                 'clientId'       => $adobeClientId,
                 'clientSecret'   => $adobeClientSecret,
                 'token'          => $adobeRefreshToken
+            ]
+        );
+    }
+
+    /**
+     * Request signatures on a Document via Signable.
+     *
+     * @param string $source
+     * @param string $signableKey
+     * @param string $envelopeTitle
+     * @param string $documentTitle
+     * @param array  $recipients
+     * @param null   $callback
+     *
+     * @return array|mixed|resource|string
+     */
+    public function signable(
+        $source,
+        $signableKey,
+        $envelopeTitle,
+        $documentTitle,
+        array $recipients,
+        $callback = null
+    ) {
+        foreach ($recipients as $recipient) {
+            if ( ! array_key_exists('name', $recipient)) {
+                throw new \InvalidArgumentException("Recipient is missing a name.");
+            }
+
+            if ( ! array_key_exists('email', $recipient)) {
+                throw new \InvalidArgumentException("Recipient is missing an email.");
+            }
+
+            if ( ! array_key_exists('templateId', $recipient)) {
+                throw new \InvalidArgumentException("Recipient is missing a templateId.");
+            }
+        }
+
+        return $this->post(
+            'signable',
+            [
+                'signableKey'   => $signableKey,
+                'recipients'    => $recipients,
+                'envelopeTitle' => $envelopeTitle,
+                'documentTitle' => $documentTitle,
+                'callback'      => $callback,
+                'source'        => $source,
+            ]
+        );
+    }
+
+    /**
+     * Send a reminder about a Document that's out for Signable signatures.
+     *
+     * @param string $source
+     * @param string $signableKey
+     *
+     * @return array|mixed|resource|string
+     */
+    public function signableReminder($source, $signableKey)
+    {
+        return $this->post(
+            'signable/remind',
+            [
+                'signableKey' => $signableKey,
+                'source'      => $source,
+            ]
+        );
+    }
+
+    /**
+     * Cancel a Document that's out for Signable signatures.
+     *
+     * @param string $source
+     * @param string $signableKey
+     *
+     * @return array|mixed|resource|string
+     */
+    public function signableCancel($source, $signableKey)
+    {
+        return $this->post(
+            'signable/cancel',
+            [
+                'signableKey' => $signableKey,
+                'source'      => $source,
             ]
         );
     }
