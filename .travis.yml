@@ -23,11 +23,5 @@ before_script:
   - composer selfupdate
   - sh .travis.install.sh
 
-install:
-  - export COMPOSER_ROOT_VERSION=dev-master
-  - if [ "$DEPENDENCIES" == "dev" ]; then perl -pi -e 's/^}$/,"minimum-stability":"dev"}/' composer.json; fi;
-  - if [ "$DEPENDENCIES" != "low" ]; then composer update; fi;
-  - if [ "$DEPENDENCIES" == "low" ]; then composer update --prefer-lowest; fi;
-
 script:
   - bin/phpspec run --format=pretty
