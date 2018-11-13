@@ -121,7 +121,7 @@ class GuzzleAdapter implements HttpAdapter
 
     public function getResponseCode()
     {
-        return $this->response->getStatusCode();
+        return (int) $this->response->getStatusCode();
     }
 
     public function getResponseHeaders()
