@@ -4,21 +4,21 @@
     "description": "PHP client for doc.build",
     "authors": [
         {
-            "name": "Robin Cawser",
-            "email": "robin@vivait.co.uk"
+            "name": "Viva IT",
+            "email": "helpdesk@vivait.co.uk"
         }
     ],
     "minimum-stability": "dev",
     "prefer-stable": true,
     "require": {
-        "php": ">=5.3.3",
+        "php": ">=7.1",
         "guzzlehttp/guzzle": "~5.0",
-        "symfony/options-resolver": "~2.2",
+        "symfony/options-resolver": "^2.2|^3.4",
         "doctrine/cache": "~1.4",
         "mikey179/vfsStream": "~1.4"
     },
     "require-dev": {
-        "phpspec/phpspec": "~2.0"
+        "phpspec/phpspec": "^5.1"
     },
     "config": {
         "bin-dir": "bin"
