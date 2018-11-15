@@ -3,13 +3,10 @@
 namespace Tests\Vivait\DocBuild;
 
 use Doctrine\Common\Cache\Cache;
-use GuzzleHttp\Psr7\Response;
-use Http\Client\Exception\HttpException;
 use org\bovigo\vfs\vfsStream;
 use org\bovigo\vfs\vfsStreamDirectory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestInterface;
 use Vivait\DocBuild\DocBuild;
 use Vivait\DocBuild\Exception\CacheException;
@@ -17,6 +14,9 @@ use Vivait\DocBuild\Exception\FileException;
 use Vivait\DocBuild\Exception\TokenExpiredException;
 use Vivait\DocBuild\Exception\TokenInvalidException;
 use Vivait\DocBuild\Exception\UnauthorizedException;
+use Vivait\DocBuild\Http\Adapter;
+use Vivait\DocBuild\Http\Response;
+use Vivait\DocBuild\Model\Exception\HttpException;
 
 class DocBuildTest extends TestCase
 {
@@ -46,7 +46,7 @@ class DocBuildTest extends TestCase
      */
     public function setUp(): void
     {
-        $this->client = $this->getMockBuilder(ClientInterface::class)
+        $this->client = $this->getMockBuilder(Adapter::class)
             ->disableOriginalConstructor()
             ->getMock()
         ;
@@ -87,12 +87,15 @@ class DocBuildTest extends TestCase
         $this->client->expects(self::exactly(2))
             ->method('sendRequest')
             ->willReturnOnConsecutiveCalls(
-                new Response(200, [], \json_encode($responseData)),
-                new Response(200, [], \json_encode($responseData))
+                $req1 = new Response(200, $this->asStream(\json_encode($responseData))),
+                $req2 = new Response(200, $this->asStream(\json_encode($responseData)))
             )
         ;
 
         $this->docBuild->getDocuments();
+
+        \fclose($req1->getStream());
+        \fclose($req2->getStream());
     }
 
     /**
@@ -121,7 +124,7 @@ class DocBuildTest extends TestCase
 
         $this->client->expects(self::once())
             ->method('sendRequest')
-            ->willReturn(new Response(200, [], $fakeExternalStream))
+            ->willReturn($req1 = new Response(200, $fakeExternalStream))
         ;
 
         $actualFileStream = \fopen('vfs://path/actualFile', 'w+');
@@ -130,6 +133,8 @@ class DocBuildTest extends TestCase
         $this->docBuild->downloadDocument('test', $actualFileStream);
 
         self::assertSame($fakeExternalFile->getContent(), $actualFile->getContent());
+
+        \fclose($fakeExternalStream);
     }
 
     /**
@@ -160,13 +165,13 @@ class DocBuildTest extends TestCase
             ->willReturn(true)
         ;
 
-        $request = $this->getMockBuilder(RequestInterface::class)
-            ->disableOriginalConstructor()
-            ->getMock()
-        ;
-
-        // Create an anonymous class instead of mocking the exception since we can't mock `getCode` as it's final
-        $exception = $this->createHttpException($status, $request, ['error_description' => 'unrecognised error']);
+        $exception = new HttpException(
+            $status,
+            $req1 = new Response(
+                200,
+                $this->asStream(\json_encode(['error_description' => 'unrecognised error']))
+            )
+        );
 
         $this->client->expects(self::once())
             ->method('sendRequest')
@@ -204,13 +209,13 @@ class DocBuildTest extends TestCase
             ->willReturn(false)
         ;
 
-        $request = $this->getMockBuilder(RequestInterface::class)
-            ->disableOriginalConstructor()
-            ->getMock()
-        ;
-
-        // Create an anonymous class instead of mocking the exception since we can't mock `getCode` as it's final
-        $exception = $this->createHttpException($status, $request, ['error_description' => 'unrecognised error']);
+        $exception = new HttpException(
+            $status,
+            $req1 = new Response(
+                200,
+                $this->asStream(\json_encode(['error_description' => 'unrecognised error']))
+            )
+        );
 
         $this->client->expects(self::once())
             ->method('sendRequest')
@@ -242,13 +247,13 @@ class DocBuildTest extends TestCase
             ->willReturn('badToken')
         ;
 
-        $request = $this->getMockBuilder(RequestInterface::class)
-            ->disableOriginalConstructor()
-            ->getMock()
-        ;
-
-        // Create an anonymous class instead of mocking the exception since we can't mock `getCode` as it's final
-        $exception = $this->createHttpException($status, $request, ['error_description' => DocBuild::TOKEN_EXPIRED]);
+        $exception = new HttpException(
+            $status,
+            $req1 = new Response(
+                200,
+                $this->asStream(\json_encode(['error_description' => DocBuild::TOKEN_EXPIRED]))
+            )
+        );
 
         $this->client->expects(self::once())
             ->method('sendRequest')
@@ -280,13 +285,13 @@ class DocBuildTest extends TestCase
             ->willReturn('badToken')
         ;
 
-        $request = $this->getMockBuilder(RequestInterface::class)
-            ->disableOriginalConstructor()
-            ->getMock()
-        ;
-
-        // Create an anonymous class instead of mocking the exception since we can't mock `getCode` as it's final
-        $exception = $this->createHttpException($status, $request, ['error_description' => DocBuild::TOKEN_INVALID]);
+        $exception = new HttpException(
+            $status,
+            $req1 = new Response(
+                200,
+                $this->asStream(\json_encode(['error_description' => DocBuild::TOKEN_INVALID]))
+            )
+        );
 
         $this->client->expects(self::once())
             ->method('sendRequest')
@@ -409,7 +414,7 @@ class DocBuildTest extends TestCase
 
         $this->client->expects(self::once())
             ->method('sendRequest')
-            ->willReturn(new Response(200, [], \json_encode([])))
+            ->willReturn(new Response(200, $this->asStream(\json_encode([]))))
         ;
 
         $this->docBuild->getDocuments();
@@ -446,5 +451,20 @@ class DocBuildTest extends TestCase
                 $this->code = $status;
             }
         };
+    }
+
+    /**
+     * @param string $input
+     *
+     * @return bool|resource
+     */
+    private function asStream(string $input)
+    {
+        $stream = \fopen('php://memory', 'r+');
+
+        \fwrite($stream, $input);
+        \rewind($stream);
+
+        return $stream;
     }
 }
