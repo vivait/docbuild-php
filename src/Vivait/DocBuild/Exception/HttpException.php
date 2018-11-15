@@ -1,6 +1,6 @@
 <?php
 
-namespace Vivait\DocBuild\Model\Exception;
+namespace Vivait\DocBuild\Exception;
 
 use Vivait\DocBuild\Http\Response;
 

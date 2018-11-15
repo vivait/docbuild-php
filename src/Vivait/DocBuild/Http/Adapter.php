@@ -2,7 +2,7 @@
 
 namespace Vivait\DocBuild\Http;
 
-use Vivait\DocBuild\Model\Exception\HttpException;
+use Vivait\DocBuild\Exception\HttpException;
 
 interface Adapter
 {

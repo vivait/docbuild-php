@@ -16,7 +16,7 @@ use Vivait\DocBuild\Exception\TokenInvalidException;
 use Vivait\DocBuild\Exception\UnauthorizedException;
 use Vivait\DocBuild\Http\Adapter;
 use Vivait\DocBuild\Http\Response;
-use Vivait\DocBuild\Model\Exception\HttpException;
+use Vivait\DocBuild\Model\HttpException;
 
 class DocBuildTest extends TestCase
 {
