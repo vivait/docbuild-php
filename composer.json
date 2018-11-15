@@ -13,17 +13,11 @@
     "require": {
         "php": ">=7.1",
         "symfony/options-resolver": "^2.2|^3.4",
-        "doctrine/cache": "~1.4",
-        "php-http/httplug": "^2.0",
-        "php-http/discovery": "^1.4",
-        "php-http/message-factory": "^1.0"
+        "doctrine/cache": "~1.4"
     },
     "require-dev": {
         "mikey179/vfsStream": "^1.6",
-        "guzzlehttp/psr7": "^1.4",
-        "guzzlehttp/guzzle": "^6.3",
-        "phpunit/phpunit": "^7.4",
-        "php-http/message": "^1.7"
+        "phpunit/phpunit": "^7.4"
     },
     "config": {
         "bin-dir": "bin"
