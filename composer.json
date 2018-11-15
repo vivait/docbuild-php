@@ -13,7 +13,8 @@
     "require": {
         "php": ">=7.1",
         "symfony/options-resolver": "^2.2|^3.4",
-        "doctrine/cache": "~1.4"
+        "doctrine/cache": "~1.4",
+        "psr/http-message": "^1.0"
     },
     "require-dev": {
         "mikey179/vfsStream": "^1.6",
