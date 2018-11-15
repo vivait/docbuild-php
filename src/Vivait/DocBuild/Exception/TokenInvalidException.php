@@ -2,12 +2,15 @@
 
 namespace Vivait\DocBuild\Exception;
 
-
-use Vivait\DocBuild\Http\HttpAdapter;
+use Vivait\DocBuild\DocBuild;
 
 class TokenInvalidException extends UnauthorizedException
 {
-    public function __construct($message = HttpAdapter::TOKEN_INVALID)
+
+    /**
+     * @param string $message The exception message.
+     */
+    public function __construct($message = DocBuild::TOKEN_INVALID)
     {
         parent::__construct($message);
     }

@@ -24,4 +24,4 @@ before_script:
   - sh .travis.install.sh
 
 script:
-  - bin/phpspec run --format=pretty
+  - bin/phpunit
