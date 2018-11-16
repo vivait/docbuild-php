@@ -95,7 +95,7 @@ class DocBuild
 
         $data = $response->toJsonArray();
 
-        if (\array_key_exists('access_token', $data)) {
+        if ($data !== null && \array_key_exists('access_token', $data)) {
             return $data['access_token'];
         } else {
             throw new \RuntimeException("No access token was provided in the response");
@@ -110,9 +110,9 @@ class DocBuild
      *
      * @throws HttpException
      *
-     * @return array The decoded JSON of the response.
+     * @return array|null The decoded JSON of the response.
      */
-    public function createDocument(string $name, string $extension, $stream = null): array
+    public function createDocument(string $name, string $extension, $stream = null): ?array
     {
         $request = [
             'document[name]'      => $name,
@@ -133,9 +133,9 @@ class DocBuild
      *
      * @throws HttpException
      *
-     * @return array The decoded JSON of the response.
+     * @return array|null The decoded JSON of the response.
      */
-    public function uploadDocument(string $id, $stream): array
+    public function uploadDocument(string $id, $stream): ?array
     {
         $file = $this->handleFileResource($stream);
 
@@ -150,9 +150,9 @@ class DocBuild
     /**
      * @throws HttpException
      *
-     * @return array
+     * @return array|null The decoded JSON of the response.
      */
-    public function getDocuments(): array
+    public function getDocuments(): ?array
     {
         return $this->get('documents')->toJsonArray();
     }
@@ -162,9 +162,9 @@ class DocBuild
      *
      * @throws HttpException
      *
-     * @return array The decoded JSON of the response.
+     * @return array|null The decoded JSON of the response.
      */
-    public function getDocument(string $id): array
+    public function getDocument(string $id): ?array
     {
         return $this->get('documents/' . $id)->toJsonArray();
     }
@@ -190,9 +190,9 @@ class DocBuild
      *
      * @throws HttpException
      *
-     * @return array The decoded JSON of the response.
+     * @return array|null The decoded JSON of the response.
      */
-    public function createCallback(string $source, string $url): array
+    public function createCallback(string $source, string $url): ?array
     {
         return $this->post(
             'callback',
@@ -210,9 +210,9 @@ class DocBuild
      *
      * @throws HttpException
      *
-     * @return array The decoded JSON of the response.
+     * @return array|null The decoded JSON of the response.
      */
-    public function combineDocument(string $name, array $sources, ?string $callback = null): array
+    public function combineDocument(string $name, array $sources, ?string $callback = null): ?array
     {
         return $this->post(
             'combine',
@@ -230,9 +230,9 @@ class DocBuild
      *
      * @throws HttpException
      *
-     * @return array The decoded JSON of the response.
+     * @return array|null The decoded JSON of the response.
      */
-    public function convertToPdf(string $source, ?string $callback = null): array
+    public function convertToPdf(string $source, ?string $callback = null): ?array
     {
         return $this->post(
             'pdf',
@@ -250,9 +250,9 @@ class DocBuild
      *
      * @throws HttpException
      *
-     * @return array The decoded JSON of the response.
+     * @return array|null The decoded JSON of the response.
      */
-    public function mailMergeDocument(string $source, array $fields, $callback = null)
+    public function mailMergeDocument(string $source, array $fields, $callback = null): ?array
     {
         return $this->post(
             'mailmerge',
@@ -271,9 +271,9 @@ class DocBuild
      *
      * @throws HttpException
      *
-     * @return array The decoded JSON of the response.
+     * @return array|null The decoded JSON of the response.
      */
-    public function v2MailMergeDocument($source, Array $fields, $callback = null)
+    public function v2MailMergeDocument($source, Array $fields, $callback = null): ?array
     {
         return $this->post(
             'v2/mailmerge',
@@ -328,7 +328,7 @@ class DocBuild
      *
      * @throws HttpException
      *
-     * @return array
+     * @return array|null The decoded JSON of the response.
      */
     public function adobeSign(
         $source,
@@ -338,7 +338,7 @@ class DocBuild
         $adobeClientSecret,
         $adobeRefreshToken,
         $callback = null
-    ): array
+    ): ?array
     {
         return $this->post(
             'adobe-sign',
@@ -366,7 +366,7 @@ class DocBuild
      *
      * @throws HttpException
      *
-     * @return array
+     * @return array|null The decoded JSON of the response.
      */
     public function signable(
         $source,
@@ -375,7 +375,7 @@ class DocBuild
         $documentTitle,
         array $recipients,
         $callback = null
-    ): array
+    ): ?array
     {
         foreach ($recipients as $recipient) {
             if ( ! array_key_exists('name', $recipient)) {
@@ -412,9 +412,9 @@ class DocBuild
      *
      * @throws HttpException
      *
-     * @return array
+     * @return array|null The decoded JSON of the response.
      */
-    public function signableReminder($source, $signableKey): array
+    public function signableReminder($source, $signableKey): ?array
     {
         return $this->post(
             'signable/remind',
@@ -433,9 +433,9 @@ class DocBuild
      *
      * @throws HttpException
      *
-     * @return array
+     * @return array|null The decoded JSON of the response.
      */
-    public function signableCancel($source, $signableKey): array
+    public function signableCancel($source, $signableKey): ?array
     {
         return $this->post(
             'signable/cancel',

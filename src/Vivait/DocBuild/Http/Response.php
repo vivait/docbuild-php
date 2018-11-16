@@ -25,8 +25,19 @@ class Response
             throw new \InvalidArgumentException("Responses can only be constructed with streams.");
         }
 
-        $this->stream = $stream;
+        // Copy the stream to an in-memory one that was fopen'd so that we can rewind it automatically on each method
+        // call
+        $memoryStream = \fopen('php://memory', 'r+');
+
+        \stream_copy_to_stream($stream, $memoryStream);
+
+        $this->stream = $memoryStream;
         $this->statusCode = $statusCode;
+
+        // Close the original stream
+        \fclose($stream);
+
+        $this->rewindStream();
     }
 
     /**
@@ -42,15 +53,22 @@ class Response
      */
     public function toString(): string
     {
+        $this->rewindStream();
+
         return \stream_get_contents($this->stream);
     }
 
     /**
-     * @return array
+     * @return array|null
      */
-    public function toJsonArray(): array
+    public function toJsonArray(): ?array
     {
-        return \json_decode($this->toString(), true);
+        $this->rewindStream();
+
+        $data = $this->toString();
+        $decoded = \json_decode($data, true);
+
+        return $decoded;
     }
 
     /**
@@ -58,6 +76,13 @@ class Response
      */
     public function getStream()
     {
+        $this->rewindStream();
+
         return $this->stream;
+    }
+
+    private function rewindStream(): void
+    {
+        \rewind($this->stream);
     }
 }
