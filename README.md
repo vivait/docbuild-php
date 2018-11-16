@@ -6,17 +6,19 @@
 composer require vivait/docbuild-php
 ```
 
+and then write an Adapter that's compatible with the [Adapter interface](src/Vivait/DocBuild/Http/Adapter.php).
+
 ## Usage
 
 See Doc.Build's Api documentation for detailed information on its methods.
 
-Creating an instance of of `DocBuild` will use the `GuzzleAdapter` by default.
-You can create your own adapter by implementing `HttpAdapter`.
-
-The class requires your client id and client secret.
+The class requires your client id, client secret and a compatible [Adapter](src/Vivait/DocBuild/Http/Adapter.php).
 
 ```php
-$docBuild = new DocBuild($clientId, $clientSecret);
+// Instantiate your adapter
+$client = new MyAdapter();
+
+$docBuild = new DocBuild($clientId, $clientSecret, $client);
 
 $docBuild->createDocument('ADocument', 'docx', '/path/to/file.docx');
 
@@ -26,23 +28,21 @@ $docBuild->convertToPdf('documentid', 'http://mycallback.url/api');
 
 ```
 
-### Http Client
-The guzzle library is used to interact the API. However, you can use your own
-adapter implementing `Vivait\DocBuild\Http\HttpAdapter` and injecting it into
-the constructor:
-
-```php
-$docBuild = new DocBuild($clientId, $clientSecret, $options, new CustomHttpAdapter());
-```
-
 ### Caching
 This library uses the `doctrine/cache` library to cache `access_token` between
-requestes. By default it will use the `Doctrine\Common\Cache\FilesystemCache`,
+requests. By default it will use the `Doctrine\Common\Cache\FilesystemCache`,
 but this can be changed by injecting a cache that implements
 `Doctrine\Common\Cache\Cache` into the constructor:
 
 ```php
-$docBuild = new DocBuild($clientId, $clientSecret, $options, null, new ArrayCache());
+$docBuild = new DocBuild(
+    $clientId, 
+    $clientSecret, 
+    GuzzleAdapter::createWithConfig([]), 
+    $options, 
+    null, 
+    new ArrayCache()
+);
 ```
 
 ### Manually refresh access_token
@@ -51,13 +51,15 @@ this behaviour can be changed by setting the following option, or passing this
 options array into the constructor on instantiation.
 
 ```php
-$docBuild->setOptions([
-	'token_refresh' => false, //Default: true
-]);
+$docBuild->setOptions(
+    [
+        'token_refresh' => false, // Default: true
+    ]
+);
 
 try {
 	$docs = $docBuild->getDocuments();
 } catch (TokenExpiredException $e) {
-	//Have another go
+	// Have another go
 }
 ```
