@@ -2,36 +2,21 @@
 
 ## Installation
 
-First, install the package itself
-
 ```
 composer require vivait/docbuild-php
 ```
 
-then install a [PSR-18](https://www.php-fig.org/psr/psr-18/) compliant HTTP client to use for requests such as:
-
-```
-composer require php-http/guzzle6-adapter
-```
-
-and finally install a message factory library that is compatible with [`php-http/message-factory`](https://packagist.org/packages/php-http/message-factory), e.g.
-
-```
-composer require php-http/message
-
-# also require guzzlehttp/psr7 which is used by php-http/message
-composer require guzzlehttp/psr7
-``` 
+and then write an Adapter that's compatible with the [Adapter interface](src/Vivait/DocBuild/Http/Adapter.php).
 
 ## Usage
 
 See Doc.Build's Api documentation for detailed information on its methods.
 
-The class requires your client id and client secret.
+The class requires your client id, client secret and a compatible [Adapter](src/Vivait/DocBuild/Http/Adapter.php).
 
 ```php
-// Instantiate a HTTP client, in this example we use Guzzle 6
-$client = GuzzleAdapter::createWithConfig([]);
+// Instantiate your adapter
+$client = new MyAdapter();
 
 $docBuild = new DocBuild($clientId, $clientSecret, $client);
 
