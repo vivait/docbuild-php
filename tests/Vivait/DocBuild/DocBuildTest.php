@@ -15,7 +15,7 @@ use Vivait\DocBuild\Exception\TokenInvalidException;
 use Vivait\DocBuild\Exception\UnauthorizedException;
 use Vivait\DocBuild\Http\Adapter;
 use Vivait\DocBuild\Http\Response;
-use Vivait\DocBuild\Model\HttpException;
+use Vivait\DocBuild\Exception\HttpException;
 
 class DocBuildTest extends TestCase
 {
@@ -133,7 +133,9 @@ class DocBuildTest extends TestCase
 
         self::assertSame($fakeExternalFile->getContent(), $actualFile->getContent());
 
-        \fclose($fakeExternalStream);
+        if (\is_resource($fakeExternalStream)) {
+            \fclose($fakeExternalStream);
+        }
     }
 
     /**
@@ -166,6 +168,7 @@ class DocBuildTest extends TestCase
 
         $exception = new HttpException(
             $status,
+            "Test",
             $req1 = new Response(
                 200,
                 $this->asStream(\json_encode(['error_description' => 'unrecognised error']))
@@ -210,6 +213,7 @@ class DocBuildTest extends TestCase
 
         $exception = new HttpException(
             $status,
+            "Test",
             $req1 = new Response(
                 200,
                 $this->asStream(\json_encode(['error_description' => 'unrecognised error']))
@@ -248,6 +252,7 @@ class DocBuildTest extends TestCase
 
         $exception = new HttpException(
             $status,
+            "Test",
             $req1 = new Response(
                 200,
                 $this->asStream(\json_encode(['error_description' => DocBuild::TOKEN_EXPIRED]))
@@ -286,6 +291,7 @@ class DocBuildTest extends TestCase
 
         $exception = new HttpException(
             $status,
+            "Test",
             $req1 = new Response(
                 200,
                 $this->asStream(\json_encode(['error_description' => DocBuild::TOKEN_INVALID]))
