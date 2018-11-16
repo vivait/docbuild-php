@@ -7,7 +7,6 @@ use org\bovigo\vfs\vfsStream;
 use org\bovigo\vfs\vfsStreamDirectory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use Psr\Http\Message\RequestInterface;
 use Vivait\DocBuild\DocBuild;
 use Vivait\DocBuild\Exception\CacheException;
 use Vivait\DocBuild\Exception\FileException;
@@ -418,39 +417,6 @@ class DocBuildTest extends TestCase
         ;
 
         $this->docBuild->getDocuments();
-    }
-
-    /**
-     * @param int              $status
-     * @param RequestInterface $request
-     * @param array            $responseData
-     *
-     * @return HttpException
-     */
-    private function createHttpException(
-        int $status,
-        RequestInterface $request,
-        array $responseData
-    ): HttpException
-    {
-        return new class($status, $request, $responseData) extends HttpException {
-
-            /**
-             * @param int              $status
-             * @param RequestInterface $request
-             * @param array            $responseData
-             */
-            public function __construct(int $status, RequestInterface $request, array $responseData)
-            {
-                parent::__construct(
-                    'Test',
-                    $request,
-                    new Response($status, [], \json_encode($responseData))
-                );
-
-                $this->code = $status;
-            }
-        };
     }
 
     /**
