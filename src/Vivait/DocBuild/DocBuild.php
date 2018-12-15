@@ -7,12 +7,12 @@ use Doctrine\Common\Cache\FilesystemCache;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Vivait\DocBuild\Exception\CacheException;
 use Vivait\DocBuild\Exception\FileException;
+use Vivait\DocBuild\Exception\HttpException;
 use Vivait\DocBuild\Exception\TokenExpiredException;
 use Vivait\DocBuild\Exception\TokenInvalidException;
 use Vivait\DocBuild\Exception\UnauthorizedException;
 use Vivait\DocBuild\Http\Adapter;
 use Vivait\DocBuild\Http\Response;
-use Vivait\DocBuild\Exception\HttpException;
 use Vivait\DocBuild\Model\Options;
 
 class DocBuild
@@ -76,7 +76,7 @@ class DocBuild
 
     /**
      * @throws HttpException
-     * 
+     *
      * @return string
      */
     public function authorize(): string
@@ -124,7 +124,9 @@ class DocBuild
             $request['document[file]'] = $file;
         }
 
-        return $this->post('documents', $request)->toJsonArray();
+        return $this->post('documents', $request)
+            ->toJsonArray()
+            ;
     }
 
     /**
@@ -144,7 +146,9 @@ class DocBuild
             [
                 'document[file]' => $file,
             ]
-        )->toJsonArray();
+        )
+            ->toJsonArray()
+            ;
     }
 
     /**
@@ -154,7 +158,9 @@ class DocBuild
      */
     public function getDocuments(): ?array
     {
-        return $this->get('documents')->toJsonArray();
+        return $this->get('documents')
+            ->toJsonArray()
+            ;
     }
 
     /**
@@ -166,7 +172,9 @@ class DocBuild
      */
     public function getDocument(string $id): ?array
     {
-        return $this->get('documents/' . $id)->toJsonArray();
+        return $this->get('documents/' . $id)
+            ->toJsonArray()
+            ;
     }
 
     /**
@@ -179,7 +187,9 @@ class DocBuild
      */
     public function downloadDocument(string $id, $stream): void
     {
-        $documentContents = $this->get('documents/' . $id . '/payload', [], [])->getStream();
+        $documentContents = $this->get('documents/' . $id . '/payload', [], [])
+            ->getStream()
+        ;
 
         \stream_copy_to_stream($documentContents, $stream);
     }
@@ -200,7 +210,9 @@ class DocBuild
                 'source' => $source,
                 'url'    => $url,
             ]
-        )->toJsonArray();
+        )
+            ->toJsonArray()
+            ;
     }
 
     /**
@@ -221,7 +233,9 @@ class DocBuild
                 'source'   => $sources,
                 'callback' => $callback,
             ]
-        )->toJsonArray();
+        )
+            ->toJsonArray()
+            ;
     }
 
     /**
@@ -240,7 +254,9 @@ class DocBuild
                 'source'   => $source,
                 'callback' => $callback,
             ]
-        )->toJsonArray();
+        )
+            ->toJsonArray()
+            ;
     }
 
     /**
@@ -261,7 +277,9 @@ class DocBuild
                 'fields'   => $fields,
                 'callback' => $callback,
             ]
-        )->toJsonArray();
+        )
+            ->toJsonArray()
+            ;
     }
 
     /**
@@ -282,7 +300,9 @@ class DocBuild
                 'fields'   => $fields,
                 'callback' => $callback,
             ]
-        )->toJsonArray();
+        )
+            ->toJsonArray()
+            ;
     }
 
     /**
@@ -338,8 +358,7 @@ class DocBuild
         $adobeClientSecret,
         $adobeRefreshToken,
         $callback = null
-    ): ?array
-    {
+    ): ?array {
         return $this->post(
             'adobe-sign',
             [
@@ -351,7 +370,9 @@ class DocBuild
                 'clientSecret'   => $adobeClientSecret,
                 'token'          => $adobeRefreshToken,
             ]
-        )->toJsonArray();
+        )
+            ->toJsonArray()
+            ;
     }
 
     /**
@@ -375,8 +396,7 @@ class DocBuild
         $documentTitle,
         array $recipients,
         $callback = null
-    ): ?array
-    {
+    ): ?array {
         foreach ($recipients as $recipient) {
             if ( ! array_key_exists('name', $recipient)) {
                 throw new \InvalidArgumentException('Recipient is missing a name.');
@@ -401,7 +421,9 @@ class DocBuild
                 'callback'      => $callback,
                 'source'        => $source,
             ]
-        )->toJsonArray();
+        )
+            ->toJsonArray()
+            ;
     }
 
     /**
@@ -422,7 +444,9 @@ class DocBuild
                 'signableKey' => $signableKey,
                 'source'      => $source,
             ]
-        )->toJsonArray();
+        )
+            ->toJsonArray()
+            ;
     }
 
     /**
@@ -443,14 +467,16 @@ class DocBuild
                 'signableKey' => $signableKey,
                 'source'      => $source,
             ]
-        )->toJsonArray();
+        )
+            ->toJsonArray()
+            ;
     }
 
     /**
-     * @param string $method     The request method to use.
-     * @param string $resource   The resource to access on the base URL.
-     * @param array  $request    Any parameters for the request (body).
-     * @param array  $headers    The request's headers.
+     * @param string $method   The request method to use.
+     * @param string $resource The resource to access on the base URL.
+     * @param array  $request  Any parameters for the request (body).
+     * @param array  $headers  The request's headers.
      *
      * @throws HttpException
      *
@@ -461,8 +487,7 @@ class DocBuild
         string $resource,
         array $request,
         array $headers
-    ): Response
-    {
+    ): Response {
         if ($this->cache->contains($this->options->getCacheKey())) {
             $accessToken = $this->cache->fetch($this->options->getCacheKey());
         } else {
@@ -491,7 +516,9 @@ class DocBuild
                 throw $e;
             }
 
-            $body = $e->getResponse()->toJsonArray();
+            $body = $e->getResponse()
+                ->toJsonArray()
+            ;
 
             if ($body === null || ! \array_key_exists('error_description', $body)) {
                 throw $e;
@@ -501,12 +528,12 @@ class DocBuild
 
             switch ($message) {
                 case self::TOKEN_EXPIRED:
-                    throw new TokenExpiredException;
+                    throw new TokenExpiredException();
                 case self::TOKEN_INVALID:
-                    throw new TokenInvalidException;
+                    throw new TokenInvalidException();
                 default:
                     // We're unauthorised, so get the token again if we need to or re-throw
-                    if( ! $this->cache->delete($this->options->getCacheKey())){
+                    if ( ! $this->cache->delete($this->options->getCacheKey())) {
                         throw new CacheException('Could not delete the key in the cache. Do you have permission?');
                     }
 
@@ -551,9 +578,9 @@ class DocBuild
     }
 
     /**
-     * @param string $resource   The resource to access on the base URL.
-     * @param array  $request    Any parameters for the request (body).
-     * @param array  $headers    The request's headers.
+     * @param string $resource The resource to access on the base URL.
+     * @param array  $request  Any parameters for the request (body).
+     * @param array  $headers  The request's headers.
      *
      * @throws HttpException
      *
@@ -581,7 +608,7 @@ class DocBuild
      */
     private function transformOptions(array $options = []): Options
     {
-        $resolver = new OptionsResolver;
+        $resolver = new OptionsResolver();
         $resolver->setDefaults(
             [
                 'token_refresh' => true,
