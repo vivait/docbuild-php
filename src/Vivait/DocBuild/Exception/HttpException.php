@@ -19,7 +19,7 @@ class HttpException extends \RuntimeException
      */
     public function __construct(int $code, string $message, ?Response $response = null)
     {
-        parent::__construct(\sprintf("There was an issue with the HTTP request or response: %s", $message), $code);
+        parent::__construct(\sprintf('There was an issue with the HTTP request or response: %s', $message), $code);
 
         $this->response = $response;
     }

@@ -119,14 +119,14 @@ class DocBuildTest extends TestCase
         $this->filesystem->addChild($actualFile);
         $this->filesystem->addChild($fakeExternalFile);
 
-        $fakeExternalStream = \fopen('vfs://path/expectedFile', 'r');
+        $fakeExternalStream = \fopen('vfs://path/expectedFile', 'rb');
 
         $this->client->expects(self::once())
             ->method('sendRequest')
             ->willReturn($req1 = new Response(200, $fakeExternalStream))
         ;
 
-        $actualFileStream = \fopen('vfs://path/actualFile', 'w+');
+        $actualFileStream = \fopen('vfs://path/actualFile', 'wb+');
 
 
         $this->docBuild->downloadDocument('test', $actualFileStream);
@@ -167,8 +167,7 @@ class DocBuildTest extends TestCase
         ;
 
         $exception = new HttpException(
-            $status,
-            "Test",
+            $status, 'Test',
             $req1 = new Response(
                 200,
                 $this->asStream(\json_encode(['error_description' => 'unrecognised error']))
@@ -212,8 +211,7 @@ class DocBuildTest extends TestCase
         ;
 
         $exception = new HttpException(
-            $status,
-            "Test",
+            $status, 'Test',
             $req1 = new Response(
                 200,
                 $this->asStream(\json_encode(['error_description' => 'unrecognised error']))
@@ -251,8 +249,7 @@ class DocBuildTest extends TestCase
         ;
 
         $exception = new HttpException(
-            $status,
-            "Test",
+            $status, 'Test',
             $req1 = new Response(
                 200,
                 $this->asStream(\json_encode(['error_description' => DocBuild::TOKEN_EXPIRED]))
@@ -290,8 +287,7 @@ class DocBuildTest extends TestCase
         ;
 
         $exception = new HttpException(
-            $status,
-            "Test",
+            $status, 'Test',
             $req1 = new Response(
                 200,
                 $this->asStream(\json_encode(['error_description' => DocBuild::TOKEN_INVALID]))
@@ -432,7 +428,7 @@ class DocBuildTest extends TestCase
      */
     private function asStream(string $input)
     {
-        $stream = \fopen('php://memory', 'r+');
+        $stream = \fopen('php://memory', 'rb+');
 
         \fwrite($stream, $input);
         \rewind($stream);

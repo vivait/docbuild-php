@@ -22,12 +22,12 @@ class Response
     public function __construct(int $statusCode, $stream)
     {
         if ( ! \is_resource($stream) || \get_resource_type($stream) !== 'stream') {
-            throw new \InvalidArgumentException("Responses can only be constructed with streams.");
+            throw new \InvalidArgumentException('Responses can only be constructed with streams.');
         }
 
         // Copy the stream to an in-memory one that was fopen'd so that we can rewind it automatically on each method
         // call
-        $memoryStream = \fopen('php://memory', 'r+');
+        $memoryStream = \fopen('php://memory', 'rb+');
 
         \stream_copy_to_stream($stream, $memoryStream);
 
@@ -66,9 +66,8 @@ class Response
         $this->rewindStream();
 
         $data = $this->toString();
-        $decoded = \json_decode($data, true);
 
-        return $decoded;
+        return \json_decode($data, true);
     }
 
     /**

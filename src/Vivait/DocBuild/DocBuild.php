@@ -97,9 +97,9 @@ class DocBuild
 
         if ($data !== null && \array_key_exists('access_token', $data)) {
             return $data['access_token'];
-        } else {
-            throw new \RuntimeException("No access token was provided in the response");
         }
+
+        throw new \RuntimeException('No access token was provided in the response');
     }
 
 
@@ -379,15 +379,15 @@ class DocBuild
     {
         foreach ($recipients as $recipient) {
             if ( ! array_key_exists('name', $recipient)) {
-                throw new \InvalidArgumentException("Recipient is missing a name.");
+                throw new \InvalidArgumentException('Recipient is missing a name.');
             }
 
             if ( ! array_key_exists('email', $recipient)) {
-                throw new \InvalidArgumentException("Recipient is missing an email.");
+                throw new \InvalidArgumentException('Recipient is missing an email.');
             }
 
             if ( ! array_key_exists('templateId', $recipient)) {
-                throw new \InvalidArgumentException("Recipient is missing a templateId.");
+                throw new \InvalidArgumentException('Recipient is missing a templateId.');
             }
         }
 
@@ -483,7 +483,7 @@ class DocBuild
         } catch (HttpException $e) {
             $code = $e->getCode();
 
-            if ( ! \in_array($code, [400, 401, 403])) {
+            if ( ! \in_array($code, [400, 401, 403], true)) {
                 throw $e;
             }
 
@@ -529,11 +529,11 @@ class DocBuild
      */
     private function handleFileResource($stream)
     {
-        if ( ! \is_resource($stream) || \get_resource_type($stream) != 'stream') {
+        if ( ! \is_resource($stream) || \get_resource_type($stream) !== 'stream') {
             throw new FileException();
-        } else {
-            return $stream;
         }
+
+        return $stream;
     }
 
     /**
@@ -571,7 +571,7 @@ class DocBuild
      */
     private function constructUrl(string $resource): string
     {
-        return \sprintf("%s/%s", \rtrim($this->options->getUrl(), '/'), $resource);
+        return \sprintf('%s/%s', \rtrim($this->options->getUrl(), '/'), $resource);
     }
 
     /**
