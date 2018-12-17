@@ -7,8 +7,6 @@ use Doctrine\Common\Cache\FilesystemCache;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Vivait\DocBuild\Exception\CacheException;
 use Vivait\DocBuild\Exception\FileException;
-use Vivait\DocBuild\Exception\TokenExpiredException;
-use Vivait\DocBuild\Exception\TokenInvalidException;
 use Vivait\DocBuild\Exception\UnauthorizedException;
 use Vivait\DocBuild\Http\Adapter;
 use Vivait\DocBuild\Http\Response;
@@ -481,13 +479,11 @@ class DocBuild
                 $headers
             );
         } catch (HttpException $e) {
-            $code = $e->getCode();
-
-            if ( ! \in_array($code, [400, 401, 403])) {
+            if ($e->getResponse() === null) {
                 throw $e;
             }
 
-            if ($e->getResponse() === null) {
+            if ( ! \in_array($e->getResponse()->getStatusCode(), [400, 401, 403])) {
                 throw $e;
             }
 
@@ -499,24 +495,21 @@ class DocBuild
 
             $message = $body['error_description'];
 
+            if( ! $this->cache->delete($this->options->getCacheKey())){
+                throw new CacheException('Could not delete the key in the cache. Do you have permission?');
+            }
+
             switch ($message) {
+                // We're unauthorised, so get the token again if we need to
                 case self::TOKEN_EXPIRED:
-                    throw new TokenExpiredException;
                 case self::TOKEN_INVALID:
-                    throw new TokenInvalidException;
+                    if ($this->options->shouldTokenRefresh()) {
+                        return $this->$method($resource, $request, $headers);
+                    }
+
+                    break;
                 default:
-                    // We're unauthorised, so get the token again if we need to or re-throw
-                    if( ! $this->cache->delete($this->options->getCacheKey())){
-                        throw new CacheException('Could not delete the key in the cache. Do you have permission?');
-                    }
-
-                    if ($e instanceof TokenExpiredException || $e instanceof TokenInvalidException) {
-                        if ($this->options->shouldTokenRefresh()) {
-                            return $this->$method($resource, $request, $headers);
-                        }
-                    }
-
-                    // Can't re-authenticate
+                    // Can't re-authenticate, throw unauthorized
                     throw new UnauthorizedException(\is_string($message) ? $message : null);
             }
         }
