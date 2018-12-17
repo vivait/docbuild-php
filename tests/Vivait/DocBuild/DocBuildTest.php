@@ -10,8 +10,6 @@ use PHPUnit\Framework\TestCase;
 use Vivait\DocBuild\DocBuild;
 use Vivait\DocBuild\Exception\CacheException;
 use Vivait\DocBuild\Exception\FileException;
-use Vivait\DocBuild\Exception\TokenExpiredException;
-use Vivait\DocBuild\Exception\TokenInvalidException;
 use Vivait\DocBuild\Exception\UnauthorizedException;
 use Vivait\DocBuild\Http\Adapter;
 use Vivait\DocBuild\Http\Response;
@@ -170,7 +168,7 @@ class DocBuildTest extends TestCase
             $status,
             "Test",
             $req1 = new Response(
-                200,
+                $status,
                 $this->asStream(\json_encode(['error_description' => 'unrecognised error']))
             )
         );
@@ -215,7 +213,7 @@ class DocBuildTest extends TestCase
             $status,
             "Test",
             $req1 = new Response(
-                200,
+                $status,
                 $this->asStream(\json_encode(['error_description' => 'unrecognised error']))
             )
         );
@@ -234,34 +232,49 @@ class DocBuildTest extends TestCase
      *
      * @param int $status
      */
-    public function itWillThrowAnExceptionIfTheTokenIsExpired(int $status): void
+    public function itWillRetryARequestIfTheTokenIsExpired(int $status): void
     {
-        $this->expectException(TokenExpiredException::class);
-
-        $this->cache->expects(self::once())
+        $this->cache->expects(self::exactly(2))
             ->method('contains')
             ->with('token')
             ->willReturn(true)
         ;
 
-        $this->cache->expects(self::once())
+        $this->cache->expects(self::exactly(2))
             ->method('fetch')
             ->with('token')
             ->willReturn('badToken')
+        ;
+
+        $this->cache->expects(self::once())
+            ->method('delete')
+            ->willReturn(true)
         ;
 
         $exception = new HttpException(
             $status,
             "Test",
             $req1 = new Response(
-                200,
+                $status,
                 $this->asStream(\json_encode(['error_description' => DocBuild::TOKEN_EXPIRED]))
             )
         );
 
-        $this->client->expects(self::once())
+        $count = 0;
+
+        $this->client->expects(self::exactly(2))
             ->method('sendRequest')
-            ->willThrowException($exception)
+            ->willReturnCallback(
+                function() use(&$count, $exception) {
+                    if ($count === 0) {
+                        $count++;
+
+                        throw $exception;
+                    }
+
+                    return new Response(200, $this->asStream('a'));
+                }
+            )
         ;
 
         $this->docBuild->getDocuments();
@@ -273,34 +286,49 @@ class DocBuildTest extends TestCase
      *
      * @param int $status
      */
-    public function itWillThrowAnExceptionIfTheTokenIsInvalid(int $status): void
+    public function itWillRetryARequestIfTheTokenIsInvalid(int $status): void
     {
-        $this->expectException(TokenInvalidException::class);
-
-        $this->cache->expects(self::once())
+        $this->cache->expects(self::exactly(2))
             ->method('contains')
             ->with('token')
             ->willReturn(true)
         ;
 
-        $this->cache->expects(self::once())
+        $this->cache->expects(self::exactly(2))
             ->method('fetch')
             ->with('token')
             ->willReturn('badToken')
+        ;
+
+        $this->cache->expects(self::once())
+            ->method('delete')
+            ->willReturn(true)
         ;
 
         $exception = new HttpException(
             $status,
             "Test",
             $req1 = new Response(
-                200,
+                $status,
                 $this->asStream(\json_encode(['error_description' => DocBuild::TOKEN_INVALID]))
             )
         );
 
-        $this->client->expects(self::once())
+        $count = 0;
+
+        $this->client->expects(self::exactly(2))
             ->method('sendRequest')
-            ->willThrowException($exception)
+            ->willReturnCallback(
+                function() use(&$count, $exception) {
+                    if ($count === 0) {
+                        $count++;
+
+                        throw $exception;
+                    }
+
+                    return new Response(200, $this->asStream('a'));
+                }
+            )
         ;
 
         $this->docBuild->getDocuments();
