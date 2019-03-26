@@ -579,7 +579,7 @@ class DocBuild
             [
                 'token_refresh' => true,
                 'cache_key'     => 'token',
-                'url'           => 'http://api.docbuild.vivait.co.uk/',
+                'url'           => 'https://api.docbuild.vivait.co.uk/',
             ]
         );
 
