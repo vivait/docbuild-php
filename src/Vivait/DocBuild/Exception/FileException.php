@@ -2,13 +2,16 @@
 
 namespace Vivait\DocBuild\Exception;
 
-class FileException extends \RuntimeException
+use RuntimeException;
+use Throwable;
+
+class FileException extends RuntimeException
 {
 
     /**
-     * @param \Exception|null $previous
+     * @param Throwable|null $previous
      */
-    public function __construct(\Exception $previous = null)
+    public function __construct(Throwable $previous = null)
     {
         parent::__construct('Not a valid stream resource', null, $previous);
     }

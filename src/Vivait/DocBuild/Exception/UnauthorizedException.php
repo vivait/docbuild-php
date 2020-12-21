@@ -2,7 +2,9 @@
 
 namespace Vivait\DocBuild\Exception;
 
-class UnauthorizedException extends \RuntimeException
+use RuntimeException;
+
+class UnauthorizedException extends RuntimeException
 {
 
     /**

@@ -1,32 +1,31 @@
 {
-    "name": "vivait/docbuild-php",
-    "license": "MIT",
-    "description": "PHP client for doc.build",
-    "authors": [
-        {
-            "name": "Viva IT",
-            "email": "helpdesk@vivait.co.uk"
-        }
-    ],
-    "minimum-stability": "dev",
-    "prefer-stable": true,
-    "require": {
-        "php": ">=7.2",
-        "symfony/options-resolver": "^2.8|^3.4|^4.4|^5.0",
-        "doctrine/cache": "~1.4",
-        "psr/http-message": "^1.0"
-    },
-    "require-dev": {
-        "mikey179/vfsStream": "^1.6",
-        "phpunit/phpunit": "^7.4"
-    },
-    "config": {
-        "bin-dir": "bin"
-    },
-    "autoload": {
-        "psr-0": {
-            "Vivait\\DocBuild\\": "src/",
-            "Tests\\Vivait\\DocBuild\\": "tests/"
-        }
+  "name": "vivait/docbuild-php",
+  "license": "MIT",
+  "description": "PHP client for doc.build",
+  "authors": [
+    {
+      "name": "Viva IT",
+      "email": "helpdesk@vivait.co.uk"
     }
+  ],
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "require": {
+    "php": ">=7.4",
+    "psr/http-message": "^1.0",
+    "ext-json": "*"
+  },
+  "require-dev": {
+    "mikey179/vfsStream": "^1.6",
+    "phpunit/phpunit": "^7.4"
+  },
+  "config": {
+    "bin-dir": "bin"
+  },
+  "autoload": {
+    "psr-0": {
+      "Vivait\\DocBuild\\": "src/",
+      "Tests\\Vivait\\DocBuild\\": "tests/"
+    }
+  }
 }

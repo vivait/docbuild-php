@@ -2,6 +2,17 @@
 
 namespace Vivait\DocBuild\Http;
 
+use InvalidArgumentException;
+
+use function fclose;
+use function fopen;
+use function get_resource_type;
+use function is_resource;
+use function json_decode;
+use function rewind;
+use function stream_copy_to_stream;
+use function stream_get_contents;
+
 class Response
 {
 
@@ -13,7 +24,7 @@ class Response
     /**
      * @var int
      */
-    private $statusCode;
+    private int $statusCode;
 
     /**
      * @param int      $statusCode
@@ -21,21 +32,21 @@ class Response
      */
     public function __construct(int $statusCode, $stream)
     {
-        if ( ! \is_resource($stream) || \get_resource_type($stream) !== 'stream') {
-            throw new \InvalidArgumentException("Responses can only be constructed with streams.");
+        if ( ! is_resource($stream) || get_resource_type($stream) !== 'stream') {
+            throw new InvalidArgumentException("Responses can only be constructed with streams.");
         }
 
-        // Copy the stream to an in-memory one that was fopen'd so that we can rewind it automatically on each method
+        // Copy the stream to an in-memory one that was opened so that we can rewind it automatically on each method
         // call
-        $memoryStream = \fopen('php://memory', 'r+');
+        $memoryStream = fopen('php://memory', 'r+');
 
-        \stream_copy_to_stream($stream, $memoryStream);
+        stream_copy_to_stream($stream, $memoryStream);
 
         $this->stream = $memoryStream;
         $this->statusCode = $statusCode;
 
         // Close the original stream
-        \fclose($stream);
+        fclose($stream);
 
         $this->rewindStream();
     }
@@ -55,7 +66,7 @@ class Response
     {
         $this->rewindStream();
 
-        return \stream_get_contents($this->stream);
+        return stream_get_contents($this->stream);
     }
 
     /**
@@ -66,9 +77,7 @@ class Response
         $this->rewindStream();
 
         $data = $this->toString();
-        $decoded = \json_decode($data, true);
-
-        return $decoded;
+        return json_decode($data, true);
     }
 
     /**
@@ -83,6 +92,6 @@ class Response
 
     private function rewindStream(): void
     {
-        \rewind($this->stream);
+        rewind($this->stream);
     }
 }

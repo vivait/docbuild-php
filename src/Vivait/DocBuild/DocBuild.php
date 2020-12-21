@@ -2,16 +2,21 @@
 
 namespace Vivait\DocBuild;
 
-use Doctrine\Common\Cache\Cache;
-use Doctrine\Common\Cache\FilesystemCache;
-use Symfony\Component\OptionsResolver\OptionsResolver;
-use Vivait\DocBuild\Exception\CacheException;
+use InvalidArgumentException;
 use Vivait\DocBuild\Exception\FileException;
 use Vivait\DocBuild\Exception\UnauthorizedException;
 use Vivait\DocBuild\Http\Adapter;
 use Vivait\DocBuild\Http\Response;
 use Vivait\DocBuild\Exception\HttpException;
-use Vivait\DocBuild\Model\Options;
+
+use function array_key_exists;
+use function get_resource_type;
+use function in_array;
+use function is_resource;
+use function is_string;
+use function rtrim;
+use function sprintf;
+use function stream_copy_to_stream;
 
 class DocBuild
 {
@@ -19,101 +24,40 @@ class DocBuild
     public const TOKEN_EXPIRED = 'The access token provided has expired.';
     public const TOKEN_INVALID = 'The access token provided is invalid.';
 
-    /**
-     * @var Adapter
-     */
-    private $http;
+    private Adapter $http;
+
+    private string $apiKey;
+
+    private string $url;
 
     /**
-     * @var string
-     */
-    private $oauthClientSecret;
-
-    /**
-     * @var string
-     */
-    private $oauthClientId;
-
-    /**
-     * @var Options
-     */
-    private $options;
-
-    /**
-     * @var Cache
-     */
-    private $cache;
-
-    /**
-     * @param string|null $clientId     OAuth client ID.
-     * @param string|null $clientSecret OAuth client secret.
-     * @param array       $options      Options for the DocBuild client,
-     * @param Adapter     $client       The HTTP client adapter to use for making requests.
-     * @param Cache       $cache        An optional
+     * @param Adapter $client The HTTP client adapter to use for making requests.
+     * @param string $apiKey API Key for the service.
+     * @param string $url URL for the hosted service.
      */
     public function __construct(
-        $clientId,
-        $clientSecret,
-        array $options = [],
         Adapter $client,
-        Cache $cache = null
+        string $apiKey,
+        string $url
     ) {
-        $this->options = $this->transformOptions($options);
-
         $this->http = $client;
-
-        if ($cache) {
-            $this->cache = $cache;
-        } else {
-            $this->cache = new FilesystemCache(\sys_get_temp_dir());
-        }
-
-        $this->oauthClientId = $clientId;
-        $this->oauthClientSecret = $clientSecret;
+        $this->apiKey = $apiKey;
+        $this->url = $url;
     }
 
     /**
-     * @throws HttpException
-     * 
-     * @return string
-     */
-    public function authorize(): string
-    {
-        // We can't use $this->performRequest() because we could get caught in a loop
-        $response = $this->http->sendRequest(
-            'post',
-            $this->constructUrl('oauth/token'),
-            [
-                'client_id'     => $this->oauthClientId,
-                'client_secret' => $this->oauthClientSecret,
-                'grant_type'    => 'client_credentials',
-            ],
-            []
-        );
-
-        $data = $response->toJsonArray();
-
-        if ($data !== null && \array_key_exists('access_token', $data)) {
-            return $data['access_token'];
-        } else {
-            throw new \RuntimeException("No access token was provided in the response");
-        }
-    }
-
-
-    /**
-     * @param string        $name
-     * @param string        $extension
+     * @param string $name
+     * @param string $extension
      * @param null|resource $stream
      *
+     * @return array|null The decoded JSON of the response.
      * @throws HttpException
      *
-     * @return array|null The decoded JSON of the response.
      */
     public function createDocument(string $name, string $extension, $stream = null): ?array
     {
         $request = [
-            'document[name]'      => $name,
+            'document[name]' => $name,
             'document[extension]' => $extension,
         ];
 
@@ -126,12 +70,12 @@ class DocBuild
     }
 
     /**
-     * @param string   $id     The document ID to upload the payload for.
+     * @param string $id The document ID to upload the payload for.
      * @param resource $stream The payload stream to be uploaded.
      *
+     * @return array|null The decoded JSON of the response.
      * @throws HttpException
      *
-     * @return array|null The decoded JSON of the response.
      */
     public function uploadDocument(string $id, $stream): ?array
     {
@@ -146,9 +90,8 @@ class DocBuild
     }
 
     /**
-     * @throws HttpException
-     *
      * @return array|null The decoded JSON of the response.
+     * @throws HttpException
      */
     public function getDocuments(): ?array
     {
@@ -158,9 +101,8 @@ class DocBuild
     /**
      * @param string $id
      *
-     * @throws HttpException
-     *
      * @return array|null The decoded JSON of the response.
+     * @throws HttpException
      */
     public function getDocument(string $id): ?array
     {
@@ -168,27 +110,26 @@ class DocBuild
     }
 
     /**
-     * @param string   $id     The ID of the document to download.
+     * @param string $id The ID of the document to download.
      * @param resource $stream The stream to copy the contents to.
      *
-     * @throws HttpException
-     *
      * @return void
+     * @throws HttpException
      */
     public function downloadDocument(string $id, $stream): void
     {
         $documentContents = $this->get('documents/' . $id . '/payload', [], [])->getStream();
 
-        \stream_copy_to_stream($documentContents, $stream);
+        stream_copy_to_stream($documentContents, $stream);
     }
 
     /**
      * @param string $source The source document ID to create the callback for.
-     * @param string $url    The callback URL.
-     *
-     * @throws HttpException
+     * @param string $url The callback URL.
      *
      * @return array|null The decoded JSON of the response.
+     * @throws HttpException
+     *
      */
     public function createCallback(string $source, string $url): ?array
     {
@@ -196,158 +137,85 @@ class DocBuild
             'callback',
             [
                 'source' => $source,
-                'url'    => $url,
+                'url' => $url,
             ]
         )->toJsonArray();
     }
 
     /**
-     * @param string      $name     The name of the new document.
-     * @param array       $sources  An array of document IDs that need combining.
+     * @param string $name The name of the new document.
+     * @param array $sources An array of document IDs that need combining.
      * @param null|string $callback The callback URL.
      *
-     * @throws HttpException
-     *
      * @return array|null The decoded JSON of the response.
+     * @throws HttpException
      */
     public function combineDocument(string $name, array $sources, ?string $callback = null): ?array
     {
         return $this->post(
             'combine',
             [
-                'name'     => $name,
-                'source'   => $sources,
+                'name' => $name,
+                'source' => $sources,
                 'callback' => $callback,
             ]
         )->toJsonArray();
     }
 
     /**
-     * @param string      $source   The ID of the document to convert to a PDF.
+     * @param string $source The ID of the document to convert to a PDF.
      * @param null|string $callback The callback URL.
      *
-     * @throws HttpException
-     *
      * @return array|null The decoded JSON of the response.
+     * @throws HttpException
      */
     public function convertToPdf(string $source, ?string $callback = null): ?array
     {
         return $this->post(
             'pdf',
             [
-                'source'   => $source,
+                'source' => $source,
                 'callback' => $callback,
             ]
         )->toJsonArray();
     }
 
     /**
-     * @param string      $source   The ID of the document to mailmerge.
-     * @param array       $fields   The fields to mailmerge into the document.
+     * @param string $source The ID of the document to mailmerge.
+     * @param array $fields The fields to mailmerge into the document.
      * @param null|string $callback The callback URL.
      *
-     * @throws HttpException
-     *
      * @return array|null The decoded JSON of the response.
+     * @throws HttpException
      */
     public function mailMergeDocument(string $source, array $fields, $callback = null): ?array
     {
         return $this->post(
             'mailmerge',
             [
-                'source'   => $source,
-                'fields'   => $fields,
+                'source' => $source,
+                'fields' => $fields,
                 'callback' => $callback,
             ]
         )->toJsonArray();
     }
 
     /**
-     * @param string      $source   The ID of the document to mailmerge.
-     * @param array       $fields   The fields to mailmerge into the document.
+     * @param string $source The ID of the document to mailmerge.
+     * @param array $fields The fields to mailmerge into the document.
      * @param null|string $callback The callback URL.
      *
-     * @throws HttpException
-     *
      * @return array|null The decoded JSON of the response.
+     * @throws HttpException
      */
-    public function v2MailMergeDocument($source, Array $fields, $callback = null): ?array
+    public function v2MailMergeDocument(string $source, array $fields, $callback = null): ?array
     {
         return $this->post(
             'v2/mailmerge',
             [
-                'source'   => $source,
-                'fields'   => $fields,
+                'source' => $source,
+                'fields' => $fields,
                 'callback' => $callback,
-            ]
-        )->toJsonArray();
-    }
-
-    /**
-     * @return Adapter
-     */
-    public function getHttpClient(): Adapter
-    {
-        return $this->http;
-    }
-
-    /**
-     * @param string $oauthClientSecret
-     */
-    public function setOauthClientSecret(string $oauthClientSecret): void
-    {
-        $this->oauthClientSecret = $oauthClientSecret;
-    }
-
-    /**
-     * @param string $oauthClientId
-     */
-    public function setOauthClientId(string $oauthClientId): void
-    {
-        $this->oauthClientId = $oauthClientId;
-    }
-
-    /**
-     * @param array $options
-     */
-    public function setOptions(array $options): void
-    {
-        $this->options = $this->transformOptions($options);
-    }
-
-    /**
-     * @param string      $source
-     * @param array       $emailAddresses
-     * @param string      $apiUrl
-     * @param string      $adobeClientId
-     * @param string      $adobeClientSecret
-     * @param string      $adobeRefreshToken
-     * @param null|string $callback
-     *
-     * @throws HttpException
-     *
-     * @return array|null The decoded JSON of the response.
-     */
-    public function adobeSign(
-        $source,
-        array $emailAddresses,
-        $apiUrl,
-        $adobeClientId,
-        $adobeClientSecret,
-        $adobeRefreshToken,
-        $callback = null
-    ): ?array
-    {
-        return $this->post(
-            'adobe-sign',
-            [
-                'source'         => $source,
-                'emailAddresses' => $emailAddresses,
-                'apiUrl'         => $apiUrl,
-                'callback'       => $callback,
-                'clientId'       => $adobeClientId,
-                'clientSecret'   => $adobeClientSecret,
-                'token'          => $adobeRefreshToken,
             ]
         )->toJsonArray();
     }
@@ -359,45 +227,43 @@ class DocBuild
      * @param string $signableKey
      * @param string $envelopeTitle
      * @param string $documentTitle
-     * @param array  $recipients
-     * @param null   $callback
-     *
-     * @throws HttpException
+     * @param array $recipients
+     * @param null $callback
      *
      * @return array|null The decoded JSON of the response.
+     * @throws HttpException
      */
     public function signable(
-        $source,
-        $signableKey,
-        $envelopeTitle,
-        $documentTitle,
+        string $source,
+        string $signableKey,
+        string $envelopeTitle,
+        string $documentTitle,
         array $recipients,
         $callback = null
-    ): ?array
-    {
+    ): ?array {
         foreach ($recipients as $recipient) {
-            if ( ! array_key_exists('name', $recipient)) {
-                throw new \InvalidArgumentException("Recipient is missing a name.");
+            if (!array_key_exists('name', $recipient)) {
+                throw new InvalidArgumentException("Recipient is missing a name.");
             }
 
-            if ( ! array_key_exists('email', $recipient)) {
-                throw new \InvalidArgumentException("Recipient is missing an email.");
+            if (!array_key_exists('email', $recipient)) {
+                throw new InvalidArgumentException("Recipient is missing an email.");
             }
 
-            if ( ! array_key_exists('templateId', $recipient)) {
-                throw new \InvalidArgumentException("Recipient is missing a templateId.");
+            if (!array_key_exists('templateId', $recipient)) {
+                throw new InvalidArgumentException("Recipient is missing a templateId.");
             }
         }
 
         return $this->post(
             'signable',
             [
-                'signableKey'   => $signableKey,
-                'recipients'    => $recipients,
+                'signableKey' => $signableKey,
+                'recipients' => $recipients,
                 'envelopeTitle' => $envelopeTitle,
                 'documentTitle' => $documentTitle,
-                'callback'      => $callback,
-                'source'        => $source,
+                'callback' => $callback,
+                'source' => $source,
             ]
         )->toJsonArray();
     }
@@ -408,17 +274,16 @@ class DocBuild
      * @param string $source
      * @param string $signableKey
      *
-     * @throws HttpException
-     *
      * @return array|null The decoded JSON of the response.
+     * @throws HttpException
      */
-    public function signableReminder($source, $signableKey): ?array
+    public function signableReminder(string $source, string $signableKey): ?array
     {
         return $this->post(
             'signable/remind',
             [
                 'signableKey' => $signableKey,
-                'source'      => $source,
+                'source' => $source,
             ]
         )->toJsonArray();
     }
@@ -429,49 +294,38 @@ class DocBuild
      * @param string $source
      * @param string $signableKey
      *
-     * @throws HttpException
-     *
      * @return array|null The decoded JSON of the response.
+     * @throws HttpException
      */
-    public function signableCancel($source, $signableKey): ?array
+    public function signableCancel(string $source, string $signableKey): ?array
     {
         return $this->post(
             'signable/cancel',
             [
                 'signableKey' => $signableKey,
-                'source'      => $source,
+                'source' => $source,
             ]
         )->toJsonArray();
     }
 
     /**
-     * @param string $method     The request method to use.
-     * @param string $resource   The resource to access on the base URL.
-     * @param array  $request    Any parameters for the request (body).
-     * @param array  $headers    The request's headers.
-     *
-     * @throws HttpException
+     * @param string $method The request method to use.
+     * @param string $resource The resource to access on the base URL.
+     * @param array $request Any parameters for the request (body).
+     * @param array $headers The request's headers.
      *
      * @return Response
+     * @throws HttpException
      */
     private function performRequest(
         string $method,
         string $resource,
         array $request,
         array $headers
-    ): Response
-    {
-        if ($this->cache->contains($this->options->getCacheKey())) {
-            $accessToken = $this->cache->fetch($this->options->getCacheKey());
-        } else {
-            $accessToken = $this->authorize();
-
-            $this->cache->save($this->options->getCacheKey(), $accessToken);
-        }
+    ): Response {
+        $headers['X-AUTH-TOKEN'] = $this->apiKey;
 
         try {
-            $request['access_token'] = $accessToken;
-
             return $this->http->sendRequest(
                 $method,
                 $this->constructUrl($resource),
@@ -483,35 +337,19 @@ class DocBuild
                 throw $e;
             }
 
-            if ( ! \in_array($e->getResponse()->getStatusCode(), [400, 401, 403])) {
-                throw $e;
+            if (!in_array($e->getResponse()->getStatusCode(), [400, 401, 403])) {
+                throw new UnauthorizedException($e->getMessage());
             }
 
             $body = $e->getResponse()->toJsonArray();
 
-            if ($body === null || ! \array_key_exists('error_description', $body)) {
+            if ($body === null || !array_key_exists('error_description', $body)) {
                 throw $e;
             }
 
             $message = $body['error_description'];
 
-            if( ! $this->cache->delete($this->options->getCacheKey())){
-                throw new CacheException('Could not delete the key in the cache. Do you have permission?');
-            }
-
-            switch ($message) {
-                // We're unauthorised, so get the token again if we need to
-                case self::TOKEN_EXPIRED:
-                case self::TOKEN_INVALID:
-                    if ($this->options->shouldTokenRefresh()) {
-                        return $this->$method($resource, $request, $headers);
-                    }
-
-                    break;
-                default:
-                    // Can't re-authenticate, throw unauthorized
-                    throw new UnauthorizedException(\is_string($message) ? $message : null);
-            }
+            throw new UnauthorizedException(is_string($message) ? $message : null);
         }
     }
 
@@ -522,7 +360,7 @@ class DocBuild
      */
     private function handleFileResource($stream)
     {
-        if ( ! \is_resource($stream) || \get_resource_type($stream) != 'stream') {
+        if (!is_resource($stream) || get_resource_type($stream) != 'stream') {
             throw new FileException();
         } else {
             return $stream;
@@ -531,12 +369,11 @@ class DocBuild
 
     /**
      * @param string $resource The resource to access on the base URL.
-     * @param array  $request  Any parameters for the request (body).
-     * @param array  $headers  The request's headers.
-     *
-     * @throws HttpException
+     * @param array $request Any parameters for the request (body).
+     * @param array $headers The request's headers.
      *
      * @return Response
+     * @throws HttpException
      */
     private function get(string $resource, array $request = [], array $headers = []): Response
     {
@@ -544,13 +381,12 @@ class DocBuild
     }
 
     /**
-     * @param string $resource   The resource to access on the base URL.
-     * @param array  $request    Any parameters for the request (body).
-     * @param array  $headers    The request's headers.
-     *
-     * @throws HttpException
+     * @param string $resource The resource to access on the base URL.
+     * @param array $request Any parameters for the request (body).
+     * @param array $headers The request's headers.
      *
      * @return Response
+     * @throws HttpException
      */
     private function post(string $resource, array $request = [], array $headers = []): Response
     {
@@ -564,25 +400,7 @@ class DocBuild
      */
     private function constructUrl(string $resource): string
     {
-        return \sprintf("%s/%s", \rtrim($this->options->getUrl(), '/'), $resource);
-    }
-
-    /**
-     * @param array $options The raw user options.
-     *
-     * @return Options
-     */
-    private function transformOptions(array $options = []): Options
-    {
-        $resolver = new OptionsResolver;
-        $resolver->setDefaults(
-            [
-                'token_refresh' => true,
-                'cache_key'     => 'token',
-                'url'           => 'https://api.docbuild.vivait.co.uk/',
-            ]
-        );
-
-        return new Options($resolver->resolve($options));
+        return sprintf("%s/%s", rtrim($this->url, '/'), $resource);
     }
 }
+
