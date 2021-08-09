@@ -309,6 +309,24 @@ class DocBuild
     }
 
     /**
+     * @param string $source The ID of the document to convert to a XLSX.
+     * @param null|string $callback The callback URL.
+     *
+     * @return array|null The decoded JSON of the response.
+     * @throws HttpException
+     */
+    public function convertToXlsx(string $source, ?string $callback = null): ?array
+    {
+        return $this->post(
+            'xlsx',
+            [
+                'source' => $source,
+                'callback' => $callback,
+            ]
+        )->toJsonArray();
+    }
+
+    /**
      * @param string $method The request method to use.
      * @param string $resource The resource to access on the base URL.
      * @param array $request Any parameters for the request (body).
