@@ -13,6 +13,6 @@ class FileException extends RuntimeException
      */
     public function __construct(Throwable $previous = null)
     {
-        parent::__construct('Not a valid stream resource', null, $previous);
+        parent::__construct('Not a valid stream resource', 0, $previous);
     }
 }

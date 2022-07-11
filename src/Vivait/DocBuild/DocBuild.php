@@ -227,7 +227,7 @@ class DocBuild
      * @param string $signableKey
      * @param string $envelopeTitle
      * @param string $documentTitle
-     * @param array $recipients
+     * @param array<array> $recipients
      * @param null $callback
      *
      * @return array|null The decoded JSON of the response.

@@ -11,20 +11,23 @@
   "minimum-stability": "dev",
   "prefer-stable": true,
   "require": {
-    "php": ">=7.4",
+    "php": ">=7.4 || >=8.0",
     "psr/http-message": "^1.0",
     "ext-json": "*"
   },
   "require-dev": {
-    "mikey179/vfsStream": "^1.6",
-    "phpunit/phpunit": "^7.4"
+    "vimeo/psalm": "^4.24"
   },
   "config": {
     "bin-dir": "bin"
   },
   "autoload": {
-    "psr-0": {
-      "Vivait\\DocBuild\\": "src/",
+    "psr-4": {
+      "Vivait\\DocBuild\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
       "Tests\\Vivait\\DocBuild\\": "tests/"
     }
   }
