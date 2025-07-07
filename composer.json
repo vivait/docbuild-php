@@ -23,7 +23,7 @@
   },
   "autoload": {
     "psr-4": {
-      "Vivait\\DocBuild\\": "src/"
+      "Vivait\\DocBuild\\": "src/Vivait/DocBuild/"
     }
   },
   "autoload-dev": {
