@@ -3,34 +3,21 @@
 namespace Vivait\DocBuild\Exception;
 
 use RuntimeException;
-use Vivait\DocBuild\Http\Response;
-
-use function sprintf;
+use Symfony\Contracts\HttpClient\ResponseInterface;
 
 class HttpException extends RuntimeException
 {
 
-    /**
-     * @var null|Response
-     */
-    private ?Response $response;
+    private ?ResponseInterface $response;
 
-    /**
-     * @param int           $code
-     * @param string        $message
-     * @param null|Response $response
-     */
-    public function __construct(int $code, string $message, ?Response $response = null)
+    public function __construct(mixed $code, string $message, ?ResponseInterface $response = null)
     {
         parent::__construct(sprintf("There was an issue with the HTTP request or response: %s", $message), $code);
 
         $this->response = $response;
     }
 
-    /**
-     * @return null|Response
-     */
-    public function getResponse(): ?Response
+    public function getResponse(): ?ResponseInterface
     {
         return $this->response;
     }

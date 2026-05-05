@@ -11,12 +11,14 @@
   "minimum-stability": "dev",
   "prefer-stable": true,
   "require": {
-    "php": ">=7.4 || >=8.0",
+    "php": ">=8.3",
     "psr/http-message": "^1.0 || ^2.0",
-    "ext-json": "*"
+    "ext-json": "*",
+    "symfony/http-client": "^6.4",
+    "symfony/mime": "^6.4"
   },
   "require-dev": {
-    "vimeo/psalm": "^4.24"
+    "vimeo/psalm": "^6"
   },
   "config": {
     "bin-dir": "bin"

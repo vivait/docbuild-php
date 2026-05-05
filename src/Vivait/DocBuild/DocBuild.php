@@ -3,11 +3,13 @@
 namespace Vivait\DocBuild;
 
 use InvalidArgumentException;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
+use Symfony\Contracts\HttpClient\ResponseInterface;
 use Vivait\DocBuild\Exception\FileException;
 use Vivait\DocBuild\Exception\UnauthorizedException;
-use Vivait\DocBuild\Http\Adapter;
-use Vivait\DocBuild\Http\Response;
 use Vivait\DocBuild\Exception\HttpException;
+use Symfony\Component\Mime\Part\Multipart\FormDataPart;
+use Symfony\Component\Mime\Part\DataPart;
 
 use function array_key_exists;
 use function get_resource_type;
@@ -16,33 +18,26 @@ use function is_resource;
 use function is_string;
 use function rtrim;
 use function sprintf;
-use function stream_copy_to_stream;
+use function array_merge;
+use function fwrite;
+use function stream_get_meta_data;
+use function basename;
 
 class DocBuild
 {
-
     public const TOKEN_EXPIRED = 'The access token provided has expired.';
     public const TOKEN_INVALID = 'The access token provided is invalid.';
 
-    private Adapter $http;
-
-    private string $apiKey;
-
-    private string $url;
-
     /**
-     * @param Adapter $client The HTTP client adapter to use for making requests.
+     * @param HttpClientInterface $client The HTTP client to use for making requests.
      * @param string $apiKey API Key for the service.
      * @param string $url URL for the hosted service.
      */
     public function __construct(
-        Adapter $client,
-        string $apiKey,
-        string $url
+        private readonly HttpClientInterface $client,
+        private readonly string $apiKey,
+        private readonly string $url
     ) {
-        $this->http = $client;
-        $this->apiKey = $apiKey;
-        $this->url = $url;
     }
 
     /**
@@ -66,7 +61,7 @@ class DocBuild
             $request['document[file]'] = $file;
         }
 
-        return $this->post('documents', $request)->toJsonArray();
+        return $this->safeToArray($this->post('documents', $request));
     }
 
     /**
@@ -81,12 +76,14 @@ class DocBuild
     {
         $file = $this->handleFileResource($stream);
 
-        return $this->post(
-            'documents/' . $id . '/payload',
-            [
-                'document[file]' => $file,
-            ]
-        )->toJsonArray();
+        return $this->safeToArray(
+            $this->post(
+                'documents/' . $id . '/payload',
+                [
+                    'document[file]' => $file,
+                ]
+            )
+        );
     }
 
     /**
@@ -95,7 +92,7 @@ class DocBuild
      */
     public function getDocuments(): ?array
     {
-        return $this->get('documents')->toJsonArray();
+        return $this->safeToArray($this->get('documents'));
     }
 
     /**
@@ -106,7 +103,7 @@ class DocBuild
      */
     public function getDocument(string $id): ?array
     {
-        return $this->get('documents/' . $id)->toJsonArray();
+        return $this->safeToArray($this->get('documents/' . $id));
     }
 
     /**
@@ -118,9 +115,11 @@ class DocBuild
      */
     public function downloadDocument(string $id, $stream): void
     {
-        $documentContents = $this->get('documents/' . $id . '/payload', [], [])->getStream();
+        $response = $this->get('documents/' . $id . '/payload', [], []);
 
-        stream_copy_to_stream($documentContents, $stream);
+        foreach ($this->client->stream($response) as $chunk) {
+            fwrite($stream, $chunk->getContent());
+        }
     }
 
     /**
@@ -133,13 +132,15 @@ class DocBuild
      */
     public function createCallback(string $source, string $url): ?array
     {
-        return $this->post(
-            'callback',
-            [
-                'source' => $source,
-                'url' => $url,
-            ]
-        )->toJsonArray();
+        return $this->safeToArray(
+            $this->post(
+                'callback',
+                [
+                    'source' => $source,
+                    'url' => $url,
+                ]
+            )
+        );
     }
 
     /**
@@ -152,14 +153,16 @@ class DocBuild
      */
     public function combineDocument(string $name, array $sources, ?string $callback = null): ?array
     {
-        return $this->post(
-            'combine',
-            [
-                'name' => $name,
-                'source' => $sources,
-                'callback' => $callback,
-            ]
-        )->toJsonArray();
+        return $this->safeToArray(
+            $this->post(
+                'combine',
+                [
+                    'name' => $name,
+                    'source' => $sources,
+                    'callback' => $callback,
+                ]
+            )
+        );
     }
 
     /**
@@ -171,13 +174,15 @@ class DocBuild
      */
     public function convertToPdf(string $source, ?string $callback = null): ?array
     {
-        return $this->post(
-            'pdf',
-            [
-                'source' => $source,
-                'callback' => $callback,
-            ]
-        )->toJsonArray();
+        return $this->safeToArray(
+            $this->post(
+                'pdf',
+                [
+                    'source' => $source,
+                    'callback' => $callback,
+                ]
+            )
+        );
     }
 
     /**
@@ -190,14 +195,16 @@ class DocBuild
      */
     public function mailMergeDocument(string $source, array $fields, $callback = null): ?array
     {
-        return $this->post(
-            'mailmerge',
-            [
-                'source' => $source,
-                'fields' => $fields,
-                'callback' => $callback,
-            ]
-        )->toJsonArray();
+        return $this->safeToArray(
+            $this->post(
+                'mailmerge',
+                [
+                    'source' => $source,
+                    'fields' => $fields,
+                    'callback' => $callback,
+                ]
+            )
+        );
     }
 
     /**
@@ -210,14 +217,16 @@ class DocBuild
      */
     public function v2MailMergeDocument(string $source, array $fields, $callback = null): ?array
     {
-        return $this->post(
-            'v2/mailmerge',
-            [
-                'source' => $source,
-                'fields' => $fields,
-                'callback' => $callback,
-            ]
-        )->toJsonArray();
+        return $this->safeToArray(
+            $this->post(
+                'v2/mailmerge',
+                [
+                    'source' => $source,
+                    'fields' => $fields,
+                    'callback' => $callback,
+                ]
+            )
+        );
     }
 
     /**
@@ -255,17 +264,19 @@ class DocBuild
             }
         }
 
-        return $this->post(
-            'signable',
-            [
-                'signableKey' => $signableKey,
-                'recipients' => $recipients,
-                'envelopeTitle' => $envelopeTitle,
-                'documentTitle' => $documentTitle,
-                'callback' => $callback,
-                'source' => $source,
-            ]
-        )->toJsonArray();
+        return $this->safeToArray(
+            $this->post(
+                'signable',
+                [
+                    'signableKey' => $signableKey,
+                    'recipients' => $recipients,
+                    'envelopeTitle' => $envelopeTitle,
+                    'documentTitle' => $documentTitle,
+                    'callback' => $callback,
+                    'source' => $source,
+                ]
+            )
+        );
     }
 
     /**
@@ -279,13 +290,15 @@ class DocBuild
      */
     public function signableReminder(string $source, string $signableKey): ?array
     {
-        return $this->post(
-            'signable/remind',
-            [
-                'signableKey' => $signableKey,
-                'source' => $source,
-            ]
-        )->toJsonArray();
+        return $this->safeToArray(
+            $this->post(
+                'signable/remind',
+                [
+                    'signableKey' => $signableKey,
+                    'source' => $source,
+                ]
+            )
+        );
     }
 
     /**
@@ -299,13 +312,15 @@ class DocBuild
      */
     public function signableCancel(string $source, string $signableKey): ?array
     {
-        return $this->post(
-            'signable/cancel',
-            [
-                'signableKey' => $signableKey,
-                'source' => $source,
-            ]
-        )->toJsonArray();
+        return $this->safeToArray(
+            $this->post(
+                'signable/cancel',
+                [
+                    'signableKey' => $signableKey,
+                    'source' => $source,
+                ]
+            )
+        );
     }
 
     /**
@@ -317,13 +332,15 @@ class DocBuild
      */
     public function convertToXlsx(string $source, ?string $callback = null): ?array
     {
-        return $this->post(
-            'xlsx',
-            [
-                'source' => $source,
-                'callback' => $callback,
-            ]
-        )->toJsonArray();
+        return $this->safeToArray(
+            $this->post(
+                'xlsx',
+                [
+                    'source' => $source,
+                    'callback' => $callback,
+                ]
+            )
+        );
     }
 
     /**
@@ -332,7 +349,7 @@ class DocBuild
      * @param array $request Any parameters for the request (body).
      * @param array $headers The request's headers.
      *
-     * @return Response
+     * @return ResponseInterface
      * @throws HttpException
      */
     private function performRequest(
@@ -340,16 +357,58 @@ class DocBuild
         string $resource,
         array $request,
         array $headers
-    ): Response {
+    ): ResponseInterface {
+        $method = strtoupper($method);
         $headers['X-AUTH-TOKEN'] = $this->apiKey;
+        $options = ['headers' => $headers];
+
+        if ($method === 'POST') {
+            $containsFiles = false;
+            foreach ($request as $value) {
+                if (is_resource($value)) {
+                    $containsFiles = true;
+                    break;
+                }
+            }
+
+            if ($containsFiles) {
+                $fields = [];
+                foreach ($request as $key => $value) {
+                    if (is_resource($value)) {
+                        $filename = null;
+                        $meta = stream_get_meta_data($value);
+                        if (isset($meta['uri'])) {
+                            $filename = basename($meta['uri']);
+                        }
+
+                        $fields[$key] = new DataPart($value, $filename);
+                    } else {
+                        $fields[$key] = $value;
+                    }
+                }
+
+                $formData = new FormDataPart($fields);
+                $options['headers'] = array_merge($options['headers'], $formData->getPreparedHeaders()->toArray());
+                $options['body'] = $formData->bodyToIterable();
+            } else {
+                $options['body'] = $request;
+            }
+        } else {
+            $options['query'] = $request;
+        }
 
         try {
-            return $this->http->sendRequest(
+            $response = $this->client->request(
                 $method,
                 $this->constructUrl($resource),
-                $request,
-                $headers
+                $options
             );
+
+            if ($response->getStatusCode() >= 400) {
+                throw new HttpException($response->getStatusCode(), "HTTP Error " . $response->getStatusCode(), $response);
+            }
+
+            return $response;
         } catch (HttpException $e) {
             if ($e->getResponse() === null) {
                 throw $e;
@@ -359,15 +418,17 @@ class DocBuild
                 throw new UnauthorizedException($e->getMessage());
             }
 
-            $body = $e->getResponse()->toJsonArray();
+            $body = $this->safeToArray($e->getResponse());
 
-            if ($body === null || !array_key_exists('error_description', $body)) {
+            if (!array_key_exists('error_description', $body)) {
                 throw $e;
             }
 
             $message = $body['error_description'];
 
             throw new UnauthorizedException(is_string($message) ? $message : null);
+        } catch (\Throwable $e) {
+            throw new HttpException($e->getCode(), $e->getMessage());
         }
     }
 
@@ -390,10 +451,10 @@ class DocBuild
      * @param array $request Any parameters for the request (body).
      * @param array $headers The request's headers.
      *
-     * @return Response
+     * @return ResponseInterface
      * @throws HttpException
      */
-    private function get(string $resource, array $request = [], array $headers = []): Response
+    private function get(string $resource, array $request = [], array $headers = []): ResponseInterface
     {
         return $this->performRequest('get', $resource, $request, $headers);
     }
@@ -403,10 +464,10 @@ class DocBuild
      * @param array $request Any parameters for the request (body).
      * @param array $headers The request's headers.
      *
-     * @return Response
+     * @return ResponseInterface
      * @throws HttpException
      */
-    private function post(string $resource, array $request = [], array $headers = []): Response
+    private function post(string $resource, array $request = [], array $headers = []): ResponseInterface
     {
         return $this->performRequest('post', $resource, $request, $headers);
     }
@@ -419,6 +480,21 @@ class DocBuild
     private function constructUrl(string $resource): string
     {
         return sprintf("%s/%s", rtrim($this->url, '/'), $resource);
+    }
+
+    private function safeToArray(ResponseInterface $response): ?array
+    {
+        if ($response->getStatusCode() === 204) {
+            return null;
+        }
+
+        $content = $response->getContent(false);
+
+        if ($content === '') {
+            return null;
+        }
+
+        return json_decode($content, true);
     }
 }
 
